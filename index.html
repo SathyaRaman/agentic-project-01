@@ -3,201 +3,422 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Trend Desk</title>
+        <title>NOPE. The Anti-Shopping Agent</title>
+        <link
+            rel="icon"
+            href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23ff4d8d'/%3E%3Ccircle cx='32' cy='32' r='19' fill='none' stroke='white' stroke-width='6'/%3E%3Cpath d='M18 18l28 28' stroke='white' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E"
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
-            href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap"
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800&family=JetBrains+Mono&display=swap"
             rel="stylesheet"
         />
         <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
         <style>
             :root {
-                --paper: #f7f3ec;
-                --card: #fffdf9;
-                --ink: #1a1714;
-                --muted: #7a7168;
-                --line: #e4dccf;
-                --accent: #b8325a;
-                --accent-soft: #f6e3e9;
-                --good: #2f7a4f;
-                --warn: #b7791f;
-                --bad: #a83232;
-                --serif: "Playfair Display", Georgia, serif;
-                --sans: "Inter", system-ui, sans-serif;
+                color-scheme: dark;
+                --bg: #07020d;
+                --side: #100417;
+                --card: #150a1c;
+                --card-2: #1c0d25;
+                --line: #2b1432;
+                --ink: #fbeff5;
+                --muted: #8f7488;
+                --pink: #f2407c;
+                --pink-2: #b82a55;
+                --pink-soft: #34111f;
+                --gold: #ffcf6e;
+                --sans: "DM Sans", system-ui, sans-serif;
                 --mono: "JetBrains Mono", ui-monospace, monospace;
-            }
-            @media (prefers-color-scheme: dark) {
-                :root {
-                    --paper: #15130f;
-                    --card: #1e1b17;
-                    --ink: #f1ebe2;
-                    --muted: #a39a8f;
-                    --line: #35302a;
-                    --accent: #e4799a;
-                    --accent-soft: #3a2029;
-                    --good: #6cc191;
-                    --warn: #e0ad5a;
-                    --bad: #e38181;
-                }
             }
             * {
                 box-sizing: border-box;
                 margin: 0;
                 padding: 0;
             }
+            html {
+                /* 16px up to ~1500px wide, then grows with the window like the spec */
+                font-size: clamp(16px, 1.07vw, 26px);
+            }
+            html,
             body {
-                background: var(--paper);
+                height: 100%;
+            }
+            body {
+                background: var(--bg);
                 color: var(--ink);
                 font-family: var(--sans);
                 line-height: 1.5;
+                overflow: hidden;
             }
-            .wrap {
-                max-width: 920px;
-                margin: 0 auto;
-                padding: 0 16px;
+            .app {
+                display: grid;
+                grid-template-columns: 23rem 1fr;
+                height: 100vh;
             }
 
-            /* Masthead */
-            header {
-                border-bottom: 2px solid var(--ink);
-                padding: 2rem 0 1rem;
-                text-align: center;
+            /* ---------- Sidebar ---------- */
+            .side {
+                background: linear-gradient(180deg, #2c0e2b 0%, #14051b 38%, var(--side) 100%);
+                border-right: 1px solid #25102b;
+                display: flex;
+                flex-direction: column;
+                min-height: 0;
             }
-            .kicker {
-                font-size: 0.7rem;
-                letter-spacing: 0.25em;
+            .side-scroll {
+                flex: 1;
+                overflow-y: auto;
+                padding: 2rem 1rem 1rem;
+            }
+            .brand {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                padding-left: 0.55rem;
+                margin-bottom: 1.7rem;
+            }
+            .logo {
+                width: 3.45rem;
+                height: 3.45rem;
+                border-radius: 1rem;
+                background: linear-gradient(135deg, #e8396f, #b32754);
+                display: grid;
+                place-items: center;
+                font-size: 1.75rem;
+                line-height: 1;
+                box-shadow: 0 8px 26px rgba(232, 57, 111, 0.28);
+                flex: none;
+            }
+            .brand h1 {
+                font-size: 2rem;
+                font-weight: 800;
+                letter-spacing: -0.035em;
+                line-height: 1;
+            }
+            .brand small {
+                display: block;
+                font-size: 0.76rem;
+                letter-spacing: 0.2em;
+                text-transform: uppercase;
+                color: var(--muted);
+                margin-top: 0.4rem;
+            }
+            .stat-card {
+                background: linear-gradient(160deg, #35122f 0%, #1d0a22 100%);
+                border: 1px solid #3a1536;
+                border-radius: 1.5rem;
+                padding: 1.4rem 1.6rem 1.3rem;
+            }
+            .label {
+                font-size: 0.8rem;
+                letter-spacing: 0.17em;
                 text-transform: uppercase;
                 color: var(--muted);
             }
-            h1 {
-                font-family: var(--serif);
+            .big {
+                font-size: 4rem;
                 font-weight: 800;
-                font-size: clamp(2.6rem, 9vw, 4.5rem);
-                letter-spacing: -0.02em;
-                line-height: 1;
-                margin: 0.4rem 0;
+                letter-spacing: -0.045em;
+                line-height: 1.05;
+                color: var(--pink);
+                margin: 0.35rem 0 0.15rem;
             }
-            h1 em {
-                color: var(--accent);
-            }
-            .dek {
-                font-family: var(--serif);
-                font-style: italic;
-                font-size: 1.15rem;
+            .big small {
+                font-size: 1.3rem;
+                font-weight: 500;
                 color: var(--muted);
+                letter-spacing: 0;
             }
-
-            /* How it works */
-            .signals {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                border-bottom: 1px solid var(--line);
-            }
-            .signal {
-                padding: 1rem;
-                border-right: 1px solid var(--line);
-            }
-            .signal:last-child {
-                border-right: none;
-            }
-            .signal b {
-                display: block;
-                font-family: var(--serif);
+            .sub {
+                color: var(--muted);
                 font-size: 1.05rem;
             }
-            .signal span {
-                font-size: 0.8rem;
+            .bar {
+                height: 6px;
+                background: #2a1230;
+                border-radius: 6px;
+                overflow: hidden;
+                margin-top: 1.1rem;
+            }
+            .bar i {
+                display: block;
+                height: 100%;
+                width: 0;
+                border-radius: 6px;
+                background: linear-gradient(90deg, var(--pink-2), #f0568c);
+                transition: width 0.5s ease;
+            }
+            .bar-note {
+                display: flex;
+                justify-content: space-between;
+                gap: 0.5rem;
+                margin-top: 0.55rem;
+                font-size: 0.82rem;
                 color: var(--muted);
             }
-            @media (max-width: 640px) {
-                .signals {
-                    grid-template-columns: 1fr;
-                }
-                .signal {
-                    border-right: none;
-                    border-bottom: 1px solid var(--line);
-                }
+            .group {
+                margin-top: 2rem;
+                padding: 0 0.4rem;
+            }
+            .group .label {
+                margin-bottom: 0.5rem;
+            }
+            .list {
+                list-style: none;
+            }
+            .list li {
+                display: flex;
+                justify-content: space-between;
+                gap: 0.6rem;
+                align-items: baseline;
+                padding: 0.8rem 0;
+                font-size: 1.15rem;
+            }
+            .list li::before {
+                content: "";
+                flex: none;
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--pink);
+                opacity: 0.85;
+                align-self: center;
+                margin-right: 0.3rem;
+            }
+            .list li span:first-of-type {
+                flex: 1;
+            }
+            .list .tag {
+                color: var(--pink);
+                font-weight: 700;
+                font-size: 0.95rem;
+                white-space: nowrap;
+            }
+            .list .role {
+                color: var(--muted);
+                font-size: 0.74rem;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+            }
+            .empty-note {
+                color: var(--muted);
+                font-size: 0.92rem;
+                font-style: italic;
+            }
+            .source {
+                margin: -0.2rem 0 0.4rem;
+                font-size: 0.82rem;
+                color: var(--pink);
+            }
+            .howto {
+                list-style: none;
+                counter-reset: s;
+            }
+            .howto li {
+                counter-increment: s;
+                display: flex;
+                gap: 0.75rem;
+                font-size: 0.92rem;
+                color: var(--muted);
+                padding: 0.4rem 0;
+            }
+            .howto li::before {
+                content: counter(s);
+                flex: none;
+                width: 1.5rem;
+                height: 1.5rem;
+                border-radius: 50%;
+                background: var(--pink-soft);
+                color: var(--pink);
+                font-weight: 700;
+                font-size: 0.78rem;
+                display: grid;
+                place-items: center;
+            }
+            .howto b {
+                color: var(--ink);
+                font-weight: 500;
+            }
+            .tools-list li {
+                display: block;
+                font-size: 0.86rem;
+                color: var(--muted);
+                padding: 0.5rem 0;
+            }
+            .tools-list li::before {
+                display: none;
+            }
+            .tools-list b {
+                display: block;
+                color: var(--ink);
+                font-weight: 700;
+                font-size: 0.95rem;
+            }
+            .tools-list code {
+                display: block;
+                font-family: var(--mono);
+                font-size: 0.74rem;
+                color: var(--pink);
+                margin-bottom: 0.15rem;
+            }
+            .side-foot {
+                border-top: 1px solid #25102b;
+                padding: 1.15rem 1.6rem;
+                font-size: 0.98rem;
+                color: var(--muted);
+                display: flex;
+                align-items: center;
+                gap: 0.7rem;
+            }
+            .dot {
+                width: 9px;
+                height: 9px;
+                border-radius: 50%;
+                background: #3ddc84;
+                box-shadow: 0 0 8px #3ddc84;
             }
 
-            /* Chat */
+            /* ---------- Main chat ---------- */
+            .main {
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+                min-height: 0;
+                background: radial-gradient(ellipse at 85% -5%, #1b0923 0%, transparent 52%), var(--bg);
+            }
+            .top {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 1rem;
+                padding: 1.7rem 2.6rem 1.4rem;
+                border-bottom: 1px solid #1f0e26;
+            }
+            .top h2 {
+                font-size: 1.45rem;
+                font-weight: 700;
+                letter-spacing: -0.02em;
+            }
+            .top p {
+                color: var(--muted);
+                font-size: 1.05rem;
+                margin-top: 0.15rem;
+            }
+            .top-right {
+                display: flex;
+                align-items: center;
+                gap: 0.7rem;
+                flex: none;
+            }
+            .pill-badge {
+                border: 1px solid #5a1f3e;
+                background: rgba(242, 64, 124, 0.07);
+                color: var(--pink);
+                border-radius: 999px;
+                padding: 0.75rem 1.5rem;
+                font-size: 1.05rem;
+                font-weight: 500;
+                white-space: nowrap;
+            }
+            .ghost {
+                background: transparent;
+                border: 1px solid var(--line);
+                color: var(--muted);
+                border-radius: 999px;
+                padding: 0.75rem 1.2rem;
+                font: inherit;
+                font-size: 1rem;
+                cursor: pointer;
+            }
+            .ghost:hover {
+                color: var(--ink);
+                border-color: var(--pink-2);
+            }
+            .mobile-brand {
+                display: none;
+                font-weight: 800;
+                color: var(--pink);
+                font-size: 0.8rem;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+                margin-bottom: 0.2rem;
+            }
+            #scroll {
+                flex: 1;
+                overflow-y: auto;
+                padding: 1.8rem 2.6rem 1rem;
+            }
             #messages {
                 display: flex;
                 flex-direction: column;
-                gap: 1.25rem;
-                padding: 1.5rem 0 9rem;
-                min-height: 40vh;
+                gap: 1.4rem;
             }
-            .empty {
-                text-align: center;
-                padding: 1.5rem 0;
-            }
-            .empty p {
-                color: var(--muted);
-                margin-bottom: 1rem;
-            }
-            .chips {
+            .msg {
                 display: flex;
-                flex-wrap: wrap;
-                gap: 0.5rem;
-                justify-content: center;
+                flex-direction: column;
+                gap: 0.7rem;
+                max-width: 72%;
             }
-            .chip {
-                border: 1px solid var(--ink);
-                background: transparent;
-                color: var(--ink);
-                border-radius: 999px;
-                padding: 0.5rem 0.9rem;
-                font: inherit;
-                font-size: 0.85rem;
-                cursor: pointer;
-            }
-            .chip:hover {
-                background: var(--ink);
-                color: var(--paper);
-            }
-            .user {
+            .msg.me {
                 align-self: flex-end;
-                max-width: 80%;
-                background: var(--ink);
-                color: var(--paper);
-                padding: 0.6rem 1rem;
-                border-radius: 1rem 1rem 0.25rem 1rem;
+                align-items: flex-end;
             }
-            .answer {
+            .bubble {
                 background: var(--card);
-                border: 1px solid var(--line);
-                border-left: 4px solid var(--accent);
-                padding: 1rem 1.25rem;
+                border: 1px solid #2a1331;
+                border-radius: 1.9rem;
+                padding: 1.4rem 1.9rem 1rem;
+                font-size: clamp(1rem, 1.25rem, 1.25rem);
+                line-height: 1.6;
             }
-            .answer p + p,
-            .answer ul + p,
-            .answer p + ul {
-                margin-top: 0.6rem;
+            .me .bubble {
+                background: linear-gradient(135deg, #ee3b74, #b52a55);
+                border: none;
+                border-radius: 1.9rem 0.4rem 1.9rem 1.9rem;
+                padding: 1.05rem 1.9rem 0.8rem;
             }
-            .answer ul {
-                padding-left: 1.2rem;
+            .bubble p + p,
+            .bubble ul + p,
+            .bubble p + ul {
+                margin-top: 0.7rem;
             }
-            .answer > p:first-child > strong:first-child {
-                font-family: var(--serif);
-                font-size: 1.3rem;
-                color: var(--accent);
+            .bubble ul {
+                padding-left: 1.3rem;
             }
-            .loading {
+            .bubble strong {
+                color: var(--pink);
+            }
+            .me .bubble strong {
+                color: #fff;
+            }
+            .bubble .time {
+                display: block;
+                text-align: right;
+                font-size: 0.82rem;
+                line-height: 1.2;
                 color: var(--muted);
-                font-family: var(--serif);
+                margin-top: 0.7rem;
+            }
+            .me .bubble .time {
+                color: rgba(255, 255, 255, 0.68);
+                margin-top: 0.4rem;
+            }
+            .thinking {
+                color: var(--muted);
                 font-style: italic;
             }
 
             /* Tool cards */
             .tools {
                 display: grid;
-                gap: 0.75rem;
+                gap: 0.7rem;
             }
             .card {
-                background: var(--card);
-                border: 1px solid var(--line);
-                padding: 1rem;
+                background: var(--card-2);
+                border: 1px solid #301535;
+                border-radius: 20px;
+                padding: 0.9rem 1.15rem;
                 min-width: 0;
             }
             .card-head {
@@ -206,129 +427,92 @@
                 align-items: baseline;
                 gap: 0.5rem;
                 flex-wrap: wrap;
-                margin-bottom: 0.6rem;
+                margin-bottom: 0.5rem;
             }
             .card-title {
-                font-size: 0.7rem;
-                letter-spacing: 0.15em;
+                font-size: 0.72rem;
+                letter-spacing: 0.16em;
                 text-transform: uppercase;
                 color: var(--muted);
             }
             .card-title b {
                 color: var(--ink);
-                letter-spacing: 0.05em;
+                font-weight: 700;
             }
             .badge {
-                font-size: 0.75rem;
-                font-weight: 600;
-                padding: 0.15rem 0.6rem;
+                font-size: 0.72rem;
+                font-weight: 700;
+                padding: 0.18rem 0.75rem;
                 border-radius: 999px;
-                background: var(--accent-soft);
-                color: var(--accent);
+                background: var(--pink-soft);
+                color: var(--pink);
                 text-transform: uppercase;
                 letter-spacing: 0.05em;
             }
-            .stats {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-                gap: 0.5rem;
-                margin-bottom: 0.75rem;
+            .badge.warn {
+                background: #3a2a10;
+                color: var(--gold);
             }
-            .stat {
-                border-top: 1px solid var(--line);
-                padding-top: 0.35rem;
-            }
-            .stat .v {
-                font-family: var(--serif);
-                font-size: 1.35rem;
-                font-weight: 600;
-            }
-            .stat .k {
-                font-size: 0.7rem;
-                color: var(--muted);
-                text-transform: uppercase;
-                letter-spacing: 0.08em;
-            }
-            .chart-box {
-                position: relative;
-                height: 180px;
-            }
-            .strip {
-                display: flex;
-                gap: 0.6rem;
-                overflow-x: auto;
-                margin-top: 0.75rem;
-                padding-bottom: 0.25rem;
-            }
-            .strip a {
-                flex: 0 0 120px;
-                color: inherit;
-                text-decoration: none;
-                font-size: 0.72rem;
-            }
-            .strip img {
-                width: 120px;
-                height: 120px;
-                object-fit: cover;
-                background: var(--line);
-                display: block;
-                margin-bottom: 0.25rem;
-            }
-            .strip .yr {
-                font-weight: 600;
-                color: var(--accent);
-            }
-            .vibe {
-                font-family: var(--serif);
-                font-style: italic;
-                margin-bottom: 0.6rem;
-            }
-            .basics {
+            .pills {
                 display: flex;
                 flex-wrap: wrap;
-                gap: 0.4rem;
+                gap: 0.45rem;
+                margin-top: 0.4rem;
             }
-            .basic {
-                border: 1px solid var(--line);
+            .pill {
+                border: 1px solid #301535;
                 border-radius: 999px;
-                padding: 0.2rem 0.7rem;
-                font-size: 0.85rem;
+                padding: 0.18rem 0.8rem;
+                font-size: 0.88rem;
             }
-            .basic b {
-                color: var(--accent);
-                font-size: 0.75rem;
-            }
-            .articles {
-                display: grid;
-                gap: 0.75rem;
-            }
-            .article {
-                border-top: 1px solid var(--line);
-                padding-top: 0.5rem;
-                font-size: 0.85rem;
-            }
-            .article .yr {
+            .pill b {
+                color: var(--pink);
                 font-size: 0.7rem;
-                font-weight: 600;
-                color: var(--accent);
                 text-transform: uppercase;
-                letter-spacing: 0.08em;
+                letter-spacing: 0.06em;
             }
-            .article a {
-                color: var(--ink);
-                font-weight: 600;
+            .pill.missing {
+                border-style: dashed;
+                border-color: var(--gold);
+                color: var(--gold);
             }
-            .article p {
+            .hint {
+                font-size: 0.86rem;
                 color: var(--muted);
-                margin-top: 0.15rem;
+                margin-top: 0.5rem;
+            }
+            .spark {
+                width: 100%;
+                height: 64px;
+                display: block;
+            }
+            .spark-meta {
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.74rem;
+                color: var(--muted);
+            }
+            .snip {
+                border-top: 1px solid #301535;
+                padding-top: 0.5rem;
+                margin-top: 0.5rem;
+                font-size: 0.9rem;
+                color: var(--muted);
+            }
+            .snip b {
+                color: var(--pink);
+                font-size: 0.72rem;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
             }
             .card.error {
                 color: var(--muted);
-                font-size: 0.85rem;
+                font-size: 0.88rem;
+                border-style: dashed;
             }
             details.raw {
-                margin-top: 0.6rem;
-                font-size: 0.72rem;
+                margin-top: 0.55rem;
+                font-size: 0.74rem;
             }
             details.raw summary {
                 cursor: pointer;
@@ -340,121 +524,248 @@
                 word-break: break-word;
                 max-height: 220px;
                 overflow: auto;
-                background: var(--paper);
+                background: var(--bg);
+                border-radius: 8px;
                 padding: 0.5rem;
                 margin-top: 0.35rem;
             }
 
-            /* Composer */
-            #composer {
-                position: fixed;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: linear-gradient(transparent, var(--paper) 30%);
-                padding: 1.5rem 0 1rem;
+            /* Chips + composer */
+            .dock {
+                padding: 0.5rem 2.6rem 1.1rem;
             }
-            #composer .row {
+            .chips {
                 display: flex;
-                gap: 0.5rem;
+                flex-wrap: wrap;
+                gap: 0.8rem;
+                margin-bottom: 1.3rem;
+            }
+            .chip {
                 background: var(--card);
-                border: 1px solid var(--ink);
-                padding: 0.35rem;
+                border: 1px solid #301535;
+                color: var(--ink);
+                border-radius: 999px;
+                padding: 0.72rem 1.45rem;
+                font: inherit;
+                font-size: 1.05rem;
+                cursor: pointer;
+                transition: border-color 0.15s, background 0.15s;
+            }
+            .chip:hover {
+                border-color: var(--pink);
+                background: var(--pink-soft);
+            }
+            .composer {
+                display: flex;
+                gap: 0.9rem;
             }
             #user-input {
                 flex: 1;
                 min-width: 0;
-                border: none;
-                background: transparent;
+                height: 4.5rem;
+                background: #130818;
+                border: 1px solid var(--line);
+                border-radius: 1.9rem;
                 color: var(--ink);
                 font: inherit;
-                font-size: 1rem;
-                padding: 0.5rem 0.6rem;
+                font-size: 1.2rem;
+                padding: 0 1.9rem;
                 outline: none;
             }
-            .btn {
+            #user-input:focus {
+                border-color: #6a2650;
+            }
+            #user-input::placeholder {
+                color: #75586d;
+            }
+            #send-btn {
+                width: 4.5rem;
+                height: 4.5rem;
+                flex: none;
                 border: none;
-                background: var(--ink);
-                color: var(--paper);
-                font: inherit;
-                font-size: 0.75rem;
-                font-weight: 600;
-                letter-spacing: 0.1em;
-                text-transform: uppercase;
-                padding: 0 1.1rem;
+                border-radius: 1.65rem;
+                background: linear-gradient(135deg, #ee3b74, #b52a55);
+                color: #fff;
                 cursor: pointer;
+                display: grid;
+                place-items: center;
+                box-shadow: 0 8px 24px rgba(232, 57, 111, 0.25);
             }
-            .btn.ghost {
-                background: transparent;
-                color: var(--muted);
+            #send-btn svg {
+                width: 1.6rem;
+                height: 1.6rem;
             }
-            .btn:disabled {
-                opacity: 0.35;
+            #send-btn:disabled {
+                opacity: 0.4;
+                cursor: default;
+            }
+            .fine {
+                text-align: center;
+                color: #5b4256;
+                font-size: 1.02rem;
+                margin-top: 1.1rem;
+            }
+
+            @media (max-width: 860px) {
+                html {
+                    font-size: 16px;
+                }
+                .app {
+                    grid-template-columns: 1fr;
+                }
+                .side {
+                    display: none;
+                }
+                .mobile-brand {
+                    display: block;
+                }
+                .top {
+                    padding: 1rem 1rem 0.8rem;
+                }
+                .pill-badge {
+                    display: none;
+                }
+                #scroll {
+                    padding: 1rem 1rem 0.5rem;
+                }
+                .dock {
+                    padding: 0.3rem 1rem 0.8rem;
+                }
+                .msg {
+                    max-width: 96%;
+                }
+                #user-input,
+                #send-btn {
+                    height: 3.6rem;
+                }
+                #send-btn {
+                    width: 3.6rem;
+                }
             }
         </style>
     </head>
     <body>
-        <header class="wrap">
-            <div class="kicker">The data-driven shopping column</div>
-            <h1>Trend <em>Desk</em></h1>
-            <p class="dek">Buy it now, wait, buy it used, or let it die? Ask before you check out.</p>
-        </header>
+        <div class="app">
+            <!-- Sidebar: everything here is read from the tools' real results -->
+            <aside class="side">
+                <div class="side-scroll">
+                    <div class="brand">
+                        <div class="logo" aria-hidden="true">🚫</div>
+                        <div>
+                            <h1>NOPE.</h1>
+                            <small>The anti-shopping agent</small>
+                        </div>
+                    </div>
 
-        <section class="wrap signals" aria-label="How it works">
-            <div class="signal">
-                <b>📈 Hype cycle</b>
-                <span>Is it alive? Ten years of Wikipedia attention, its peak, and how fast it is fading.</span>
-            </div>
-            <div class="signal">
-                <b>🏷️ Resale pulse</b>
-                <span>What is it worth? New vs pre-owned eBay market, and whether people are dumping it.</span>
-            </div>
-            <div class="signal">
-                <b>🏛️ Resurrection forecast</b>
-                <span>Will it come back? Two centuries of the V&amp;A museum archive, decade by decade.</span>
-            </div>
-        </section>
+                    <div class="stat-card">
+                        <div class="label">Outfit progress</div>
+                        <div class="big" id="progress-num">&ndash;</div>
+                        <div class="sub" id="progress-sub">Tell me what you own to start</div>
+                        <div class="bar"><i id="progress-bar"></i></div>
+                        <div class="bar-note"><span>Complete = top + bottom (or dress), shoes, 3 accessories</span></div>
+                    </div>
 
-        <main class="wrap">
-            <div id="messages">
-                <div class="empty" id="empty">
-                    <p>Ask about any trend, aesthetic or item you're about to buy.</p>
-                    <div class="chips">
-                        <button class="chip">Is now a good time to buy ballet flats, or should I wait?</button>
-                        <button class="chip">Is the coquette aesthetic over?</button>
-                        <button class="chip">When will platform shoes come back?</button>
-                        <button class="chip">Quiet luxury vs cargo pants: which is aging better?</button>
+                    <div class="group">
+                        <div class="label">Your closet</div>
+                        <ul class="list" id="closet-list"></ul>
+                        <p class="empty-note" id="closet-empty">Nothing yet. List what you own in the chat.</p>
+                    </div>
+
+                    <div class="group">
+                        <div class="label">Microtrend checker</div>
+                        <p class="source">Wikipedia pageviews since 2015</p>
+                        <ul class="list" id="checks-list"></ul>
+                        <p class="empty-note" id="checks-empty">None yet. Ask me about anything you want to buy.</p>
+                    </div>
+
+                    <div class="group">
+                        <div class="label">How to use it</div>
+                        <ol class="howto">
+                            <li><span><b>Name the event</b> you're dressing for.</span></li>
+                            <li><span><b>List what you own</b>: tops, bottoms, dresses, layers, shoes, accessories.</span></li>
+                            <li><span><b>Or name what you want to buy</b>: the microtrend checker says if it's a staple or a spike.</span></li>
+                        </ol>
+                    </div>
+
+                    <div class="group">
+                        <div class="label">Under the hood</div>
+                        <ul class="list tools-list">
+                            <li><b>Event search</b><code>get_event_outfit_map</code>Top organic Google results across fashion, socials, articles and more for what to wear to your kind of event.</li>
+                            <li><b>Closet check</b><code>check_outfit_completeness</code>Checks your pieces make a full outfit and lists what's missing.</li>
+                            <li><b>Microtrend checker</b><code>get_item_pageviews</code>Wikipedia pageviews since 2015: lasting interest or a passing spike.</li>
+                        </ul>
                     </div>
                 </div>
-            </div>
-        </main>
+                <div class="side-foot"><span class="dot"></span><span id="foot-text">Ready &middot; 0 tool calls this session</span></div>
+            </aside>
 
-        <div id="composer">
-            <div class="wrap">
-                <div class="row">
-                    <input
-                        type="text"
-                        id="user-input"
-                        placeholder="e.g. Should I buy a corset top for $80?"
-                        autocomplete="off"
-                    />
-                    <button class="btn ghost" id="clear-btn" title="Start a new conversation">New</button>
-                    <button class="btn" id="send-btn">Ask</button>
+            <!-- Chat -->
+            <section class="main">
+                <div class="top">
+                    <div>
+                        <div class="mobile-brand">NOPE. The anti-shopping agent</div>
+                        <h2>Chat with NOPE</h2>
+                        <p>Tell me the event, what you own, or what you want to buy.</p>
+                    </div>
+                    <div class="top-right">
+                        <span class="pill-badge" id="top-badge">Outfit: not checked</span>
+                        <button class="ghost" id="clear-btn" title="Start a new conversation">New chat</button>
+                    </div>
                 </div>
-            </div>
+
+                <div id="scroll">
+                    <div id="messages"></div>
+                </div>
+
+                <div class="dock">
+                    <div class="chips" id="chips" aria-label="Sample queries"></div>
+                    <div class="composer">
+                        <input type="text" id="user-input" placeholder="The event, what you own, or what you want to buy..." autocomplete="off" />
+                        <button id="send-btn" aria-label="Send">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M5 12h14M13 6l6 6-6 6" />
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="fine">NOPE will judge you. Lovingly.</p>
+                </div>
+            </section>
         </div>
 
         <script>
             const messages = document.getElementById("messages");
+            const scroller = document.getElementById("scroll");
             const userInput = document.getElementById("user-input");
             const sendBtn = document.getElementById("send-btn");
             let sessionId = null;
+            let toolCallCount = 0;
+            const trendChecks = new Map(); // item -> peak year, filled from get_item_pageviews results
+
+            // Sample queries: the label is the chip, the text is what gets sent.
+            const SAMPLES = [
+                {
+                    label: "Rooftop party outfit",
+                    text: "I have a rooftop party in Williamsburg on Friday. I own dark pants, a few blazers, white sneakers and plain tees. What should I wear?",
+                },
+                {
+                    label: "Gallery opening: am I set?",
+                    text: "Gallery opening this weekend. I have a black slip skirt, a plain tee, ballet flats, a blazer, a belt, a watch and gold earrings. Do I need to buy anything?",
+                },
+                {
+                    label: "Wedding guest, only jeans",
+                    text: "I'm a wedding guest next month and I only own jeans, a hoodie and sneakers. What am I missing?",
+                },
+                {
+                    label: "Microtrend check: loafers",
+                    text: "Everyone says I need loafers for my job interview. Are loafers a trend or a staple?",
+                },
+            ];
 
             const LOADING_LINES = [
-                "Pulling the receipts…",
-                "Checking who's still searching for it…",
-                "Rifling through the museum archive…",
-                "Pricing it on the resale market…",
+                "Looking up what to wear there…",
+                "Checking your closet…",
+                "Running the microtrend checker…",
+                "Resisting the urge to shop…",
             ];
 
             // --- tiny DOM helpers (tool data is untrusted text: never innerHTML it) ---
@@ -464,39 +775,203 @@
                 if (text !== undefined) n.textContent = text;
                 return n;
             }
-            // Every tool call gets the same card: its name, arguments and result as pretty-printed JSON.
-            // The only warning is for a result that isn't valid JSON.
-            function renderToolCall(call) {
-                const card = el("details", "card raw");
-                card.append(el("summary", null, "tool call: " + call.name + "(" + JSON.stringify(call.args) + ")"));
+            function svg(tag, attrs) {
+                const n = document.createElementNS("http://www.w3.org/2000/svg", tag);
+                for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+                return n;
+            }
+            const clock = () => new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+            function head(title, badgeText, warn) {
+                const h = el("div", "card-head");
+                const t = el("div", "card-title");
+                t.append(el("b", null, title));
+                h.append(t);
+                if (badgeText) h.append(el("span", "badge" + (warn ? " warn" : ""), badgeText));
+                return h;
+            }
+            function rawJson(call) {
+                const d = el("details", "raw");
+                d.append(el("summary", null, call.name + "(" + JSON.stringify(call.args) + ")"));
+                let body = call.result;
                 try {
-                    card.append(el("pre", null, JSON.stringify(JSON.parse(call.result), null, 2)));
-                } catch {
-                    card.classList.add("error");
-                    card.append(el("div", null, "⚠️ Tool returned invalid JSON:"), el("pre", null, call.result));
+                    body = JSON.stringify(JSON.parse(call.result), null, 2);
+                } catch {}
+                d.append(el("pre", null, body));
+                return d;
+            }
+            function bubble(who, node) {
+                const m = el("div", "msg " + who);
+                const b = el("div", "bubble");
+                b.append(node);
+                b.append(el("span", "time", clock()));
+                m.append(b);
+                return m;
+            }
+
+            // --- one renderer per tool; anything unexpected falls back to a plain card with the raw JSON ---
+            function renderCloset(call, data) {
+                const warn = data.status !== "complete";
+                const label = { complete: "Outfit possible", search_closet: "Search your closet", needs_clarification: "Need a detail" }[data.status];
+                const card = el("div", "card");
+                card.append(head("Closet check", label || data.status, warn));
+
+                const pills = el("div", "pills");
+                for (const [role, names] of Object.entries(data.have || {})) {
+                    for (const name of names) {
+                        const p = el("span", "pill");
+                        p.append(el("b", null, role + " "), document.createTextNode(name));
+                        pills.append(p);
+                    }
                 }
+                for (const role of data.missing_roles || []) {
+                    const need = role === "accessory" && data.accessories_needed ? data.accessories_needed + " more " : "";
+                    pills.append(el("span", "pill missing", "missing: " + need + role));
+                }
+                for (const name of data.unclear_pieces || []) pills.append(el("span", "pill missing", "unclear: " + name));
+                card.append(pills);
+
+                const hints = Object.entries(data.closet_hints || {}).map(([r, h]) => r + ": " + h);
+                if (hints.length) card.append(el("div", "hint", "Look in your closet for: " + hints.join("; ")));
+                card.append(rawJson(call));
                 return card;
+            }
+
+            function peakOf(data) {
+                const entries = Object.entries(data.monthly_pageviews || {});
+                if (entries.length < 2) return null;
+                const values = entries.map(([, v]) => v);
+                const max = Math.max(...values);
+                return { entries, values, max, idx: values.indexOf(max) };
+            }
+
+            function renderPageviews(call, data) {
+                const card = el("div", "card");
+                card.append(head("Microtrend checker: " + (data.item || ""), "via Wikipedia"));
+                const pk = peakOf(data);
+                if (!pk) throw new Error("no series");
+                const { entries, values, max, idx } = pk;
+                const W = 600, H = 64, pad = 4;
+                const x = (i) => pad + (i / (values.length - 1)) * (W - 2 * pad);
+                const y = (v) => H - pad - (v / max) * (H - 2 * pad);
+                const chart = svg("svg", { viewBox: `0 0 ${W} ${H}`, class: "spark", preserveAspectRatio: "none" });
+                chart.append(svg("polyline", {
+                    points: values.map((v, i) => `${x(i)},${y(v)}`).join(" "),
+                    fill: "none", stroke: "#ff4d8d", "stroke-width": "2", "vector-effect": "non-scaling-stroke",
+                }));
+                chart.append(svg("circle", { cx: x(idx), cy: y(max), r: "3.5", fill: "#ff4d8d" }));
+                card.append(chart);
+
+                const meta = el("div", "spark-meta");
+                meta.append(el("span", null, entries[0][0]), el("span", null, "peak " + entries[idx][0] + " (" + max.toLocaleString() + " views/mo)"), el("span", null, entries[entries.length - 1][0]));
+                card.append(meta, rawJson(call));
+                return card;
+            }
+
+            function renderEventMap(call, data) {
+                const card = el("div", "card");
+                card.append(head("Top Google results", (data.snippets || []).length + " sources"));
+                for (const s of (data.snippets || []).slice(0, 3)) {
+                    const row = el("div", "snip");
+                    row.append(el("b", null, (s.source || "web") + " "), document.createTextNode(s.snippet || ""));
+                    card.append(row);
+                }
+                card.append(rawJson(call));
+                return card;
+            }
+
+            function renderToolCall(call) {
+                let data;
+                try {
+                    data = JSON.parse(call.result);
+                } catch {
+                    const c = el("div", "card error");
+                    c.append(el("div", null, "⚠️ " + call.name + " returned something unreadable."), rawJson(call));
+                    return c;
+                }
+                if (data.error) {
+                    const c = el("div", "card error");
+                    c.append(el("div", null, call.name + ": " + data.error), rawJson(call));
+                    return c;
+                }
+                try {
+                    if (call.name === "check_outfit_completeness") return renderCloset(call, data);
+                    if (call.name === "get_item_pageviews") return renderPageviews(call, data);
+                    if (call.name === "get_event_outfit_map") return renderEventMap(call, data);
+                } catch {}
+                const c = el("div", "card");
+                c.append(head(call.name, null), rawJson(call));
+                return c;
+            }
+
+            // --- sidebar: only ever shows what the tools returned ---
+            function setList(listId, emptyId, rows) {
+                const ul = document.getElementById(listId);
+                ul.replaceChildren();
+                for (const [left, right, cls] of rows) {
+                    const li = el("li");
+                    li.append(el("span", null, left), el("span", cls || "tag", right));
+                    ul.append(li);
+                }
+                document.getElementById(emptyId).style.display = rows.length ? "none" : "block";
+            }
+
+            function updateSidebar(calls) {
+                toolCallCount += calls.length;
+                document.getElementById("foot-text").textContent = "Ready · " + toolCallCount + " tool call" + (toolCallCount === 1 ? "" : "s") + " this session";
+
+                for (const c of calls) {
+                    if (c.name !== "get_item_pageviews") continue;
+                    try {
+                        const data = JSON.parse(c.result);
+                        const pk = peakOf(data);
+                        if (pk) trendChecks.set(data.item || c.args.item, "peak " + pk.entries[pk.idx][0].slice(0, 4));
+                    } catch {}
+                }
+                setList("checks-list", "checks-empty", [...trendChecks].map(([item, peak]) => [item, peak]));
+
+                const last = calls.filter((c) => c.name === "check_outfit_completeness").pop();
+                if (!last) return;
+                try {
+                    const data = JSON.parse(last.result);
+                    const have = data.have;
+                    if (!have) return; // needs_clarification: nothing new to show yet
+
+                    const rows = [];
+                    for (const [role, names] of Object.entries(have)) for (const n of names) rows.push([n, role, "role"]);
+                    setList("closet-list", "closet-empty", rows);
+
+                    // Progress = required slots filled, using the same rule as the tool.
+                    const required = have.dress ? ["dress", "shoes"] : ["top", "bottom", "shoes"];
+                    const total = required.length + 3;
+                    const filled = required.filter((r) => (have[r] || []).length).length + Math.min(3, (have.accessory || []).length);
+                    document.getElementById("progress-num").replaceChildren(document.createTextNode(filled), el("small", null, " / " + total));
+                    document.getElementById("progress-bar").style.width = (filled / total) * 100 + "%";
+                    const missing = (data.missing_roles || []).map((r) => (r === "accessory" && data.accessories_needed ? data.accessories_needed + " accessories" : r));
+                    document.getElementById("progress-sub").textContent = data.status === "complete" ? "Outfit possible. No purchase needed." : "Still needed: " + missing.join(", ");
+                    document.getElementById("top-badge").textContent = data.status === "complete" ? "Outfit: complete" : "Outfit: " + filled + " of " + total + " ready";
+                } catch {}
             }
 
             // --- chat ---
             function scrollDown() {
-                window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+                scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" });
             }
 
             async function send(text) {
                 text = (text ?? userInput.value).trim();
                 if (!text) return;
-                document.getElementById("empty")?.remove();
                 userInput.value = "";
                 sendBtn.disabled = true;
 
-                messages.append(el("div", "user", text));
-                const loading = el("div", "loading", LOADING_LINES[0]);
+                messages.append(bubble("me", document.createTextNode(text)));
+                const loading = el("div", "msg");
+                const lb = el("div", "bubble thinking", LOADING_LINES[0]);
+                loading.append(lb);
                 messages.append(loading);
                 scrollDown();
                 let i = 0;
                 const ticker = setInterval(() => {
-                    loading.textContent = LOADING_LINES[++i % LOADING_LINES.length];
+                    lb.textContent = LOADING_LINES[++i % LOADING_LINES.length];
                 }, 1800);
 
                 try {
@@ -508,16 +983,19 @@
                     const data = await res.json();
                     sessionId = data.session_id;
 
+                    const reply = el("div", "msg");
                     if (data.tool_calls && data.tool_calls.length) {
                         const tools = el("div", "tools");
                         for (const call of data.tool_calls) tools.append(renderToolCall(call));
-                        messages.insertBefore(tools, loading);
+                        reply.append(tools);
+                        updateSidebar(data.tool_calls);
                     }
-                    const answer = el("div", "answer");
-                    answer.innerHTML = DOMPurify.sanitize(marked.parse(data.response || ""));
-                    loading.replaceWith(answer);
+                    const body = el("div");
+                    body.innerHTML = DOMPurify.sanitize(marked.parse(data.response || ""));
+                    reply.append(bubble("", body).firstChild);
+                    loading.replaceWith(reply);
                 } catch (e) {
-                    loading.replaceWith(el("div", "answer", "Error: " + e.message));
+                    loading.replaceWith(bubble("", document.createTextNode("Error: " + e.message)));
                 }
                 clearInterval(ticker);
                 sendBtn.disabled = false;
@@ -525,11 +1003,26 @@
                 scrollDown();
             }
 
+            // Welcome message: static UI text explaining the agent, not part of the model's conversation.
+            const welcome = el("div");
+            welcome.append(
+                el("p", null, "You have something on your calendar. You open your closet and feel like you have nothing to wear. So you buy something, wear it once, and the cycle starts again."),
+                el("p", null, "I'm NOPE, the anti-shopping agent, and I'm here to break that cycle. Tell me the event you're dressing for, what you already own, or what you want to buy."),
+                el("p", null, "For an event and your closet, I'll check you have a full outfit. For something you want to buy, my microtrend checker reads Wikipedia pageviews to tell a lasting staple from a passing spike."),
+            );
+            messages.append(bubble("", welcome));
+
+            const chips = document.getElementById("chips");
+            for (const s of SAMPLES) {
+                const b = el("button", "chip", s.label);
+                b.addEventListener("click", () => send(s.text));
+                chips.append(b);
+            }
+
             sendBtn.addEventListener("click", () => send());
             userInput.addEventListener("keydown", (e) => {
                 if (e.key === "Enter") send();
             });
-            document.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => send(c.textContent)));
             document.getElementById("clear-btn").addEventListener("click", async () => {
                 if (sessionId) await fetch("/clear?session_id=" + encodeURIComponent(sessionId), { method: "POST" });
                 location.reload();

@@ -1,7 +1,7 @@
 [project]
 name = "trend-desk"
 version = "0.1.0"
-description = "Trend Desk: a fashion trend analyst agent (FastAPI + LiteLLM + Gemini) with Wikipedia, eBay and V&A tools"
+description = "NOPE, the anti-shopping agent (FastAPI + LiteLLM + Gemini): event outfit search, a closet completeness check, and a Wikipedia microtrend checker"
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.109.0",

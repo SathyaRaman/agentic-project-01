@@ -78,9 +78,10 @@ def get_event_outfit_map(event_type: str, venue: str = "") -> str:
             params={"engine": "google", "q": query, "api_key": SERPAPI_KEY},
             timeout=45,  # SerpAPI runs a live Google search; uncached queries can take 20s+
         ).json()
-    except requests.RequestException as e:
+    except requests.RequestException:
         # The model cannot see an exception. Return something it can reason about.
-        return json.dumps({"error": f"Web search failed: {e}",
+        # Don't echo the exception: requests puts the full URL, including api_key, in its message.
+        return json.dumps({"error": "Web search is temporarily unavailable.",
                            "next_step": "Answer from general dress-code knowledge and say sources weren't checked."})
 
     if "error" in results:  # bad key, out of searches, or no results
@@ -102,6 +103,59 @@ def get_event_outfit_map(event_type: str, venue: str = "") -> str:
         })
 
     return json.dumps({"query": query, "snippets": snippets})
+
+
+# What to look for in the closet when a role is missing.
+CLOSET_HINTS = {
+    "top": "a tee, tank, button-up or knit",
+    "bottom": "trousers, jeans or a skirt",
+    "shoes": "sneakers, flats, boots or loafers",
+    "accessory": "jewelry, a bag, a belt, a scarf, sunglasses or a watch",
+}
+MIN_ACCESSORIES = 3
+
+
+def check_outfit_completeness(items: list[dict]) -> str:
+    """Check whether the pieces a user owns make a complete outfit, and list any missing roles."""
+    try:
+        found = {}
+        for item in items:
+            found.setdefault(item["role"], []).append(item["name"])
+    except (TypeError, KeyError):
+        return json.dumps({"error": "Each item needs a 'name' and a 'role'.",
+                           "next_step": "Retry with items like {'name': 'dark pants', 'role': 'bottom'}."})
+    if not found:
+        return json.dumps({"error": "items is empty.",
+                           "next_step": "Ask the user which pieces they own for this event, then retry."})
+    if "unclear" in found:
+        return json.dumps({
+            "status": "needs_clarification",
+            "unclear_pieces": found["unclear"],
+            "next_step": "Ask the user what each unclear piece is or how they'd wear it (e.g. a 'jumper' could be a "
+                         "sweater or a dress), then call this tool again with the full list and a clear role for each.",
+        })
+
+    required = ["dress", "shoes"] if "dress" in found else ["top", "bottom", "shoes"]
+    missing = [r for r in required if r not in found]
+    accessories_needed = max(0, MIN_ACCESSORIES - len(found.get("accessory", [])))
+    if accessories_needed:
+        missing.append("accessory")
+
+    if missing:
+        return json.dumps({
+            "status": "search_closet",
+            "have": found,
+            "missing_roles": missing,
+            "accessories_needed": accessories_needed,
+            "closet_hints": {r: CLOSET_HINTS.get(r, "") for r in missing},
+            "next_step": "Ask the user to check their closet for each missing role. Only if they confirm they own "
+                         "nothing for it, call get_item_pageviews on a plain garment for that role.",
+        })
+    return json.dumps({
+        "status": "complete",
+        "have": found,
+        "next_step": "An outfit is possible from what they own. No purchase needed. Suggest a layer if none is listed.",
+    })
 
 
 # What the model sees: the "set notes" in the screenplay.
@@ -160,10 +214,54 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "check_outfit_completeness",
+            "description": (
+                "Check whether the pieces the user says they own make a complete outfit (dress + shoes, or top + "
+                "bottom + shoes, plus at least 3 accessories). Returns status 'complete' or 'search_closet' with the missing roles and what to "
+                "look for in their closet. Call it once the user has listed what they own for an event."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "description": "The user's WHOLE list of garments they mentioned owning, none left out. Do not "
+                                       "pick an outfit yourself; this tool decides whether the pieces make one. Do "
+                                       "not add items they did not mention.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string", "description": "Garment as the user said it, e.g. 'dark pants'."},
+                                "role": {
+                                    "type": "string",
+                                    "enum": ["top", "bottom", "dress", "layer", "shoes", "accessory", "unclear"],
+                                    "description": "The closest part of an outfit this piece plays: 'top', 'bottom', "
+                                                   "'dress' (one-piece, e.g. jumpsuit), 'layer' (worn over a top, "
+                                                   "e.g. blazer, cardigan, kimono), 'shoes', or 'accessory' (e.g. "
+                                                   "bag, jewelry, belt, hat, scarf, tights). Use 'unclear' only if "
+                                                   "the piece could plausibly be two roles (e.g. 'jumper': sweater "
+                                                   "or dress); the tool will then tell you to ask the user.",
+                                },
+                            },
+                            "required": ["name", "role"],
+                        },
+                    },
+                },
+                "required": ["items"],
+            },
+        },
+    },
 ]
 
 # What the harness runs: tool name -> Python function.
-TOOL_MAP = {"get_item_pageviews": get_item_pageviews, "get_event_outfit_map": get_event_outfit_map}
+TOOL_MAP = {
+    "get_item_pageviews": get_item_pageviews,
+    "get_event_outfit_map": get_event_outfit_map,
+    "check_outfit_completeness": check_outfit_completeness,
+}
 
 
 def run_tool(name: str, args: dict) -> str:
