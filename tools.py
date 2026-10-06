@@ -64,7 +64,7 @@ MAX_SNIPPETS = 10
 
 
 def get_event_outfit_map(event_type: str, venue: str = "") -> str:
-    """Search Google for magazine/article advice on what to wear to an event and return the snippets."""
+    """Search Google for what to wear to an event and return the top organic results' snippets."""
     if SERPAPI_KEY == "YOUR_SERPAPI_KEY_HERE":
         return json.dumps({
             "error": "Web search unavailable: SERPAPI_KEY is not configured on this server.",
@@ -193,8 +193,9 @@ TOOLS = [
         "function": {
             "name": "get_event_outfit_map",
             "description": (
-                "Search Google for magazine and article advice on what to wear to an event (optionally at a "
-                "specific venue or neighborhood) and return the article snippets with their source. Read across "
+                "Search Google for what to wear to an event (optionally at a specific venue or neighborhood) and "
+                "return the top organic results' snippets with their source: fashion sites, social posts, "
+                "articles and more. Read across "
                 "the snippets for the common basics people wear there, e.g. 'black tank top', 'black ballet "
                 "flats', 'slip skirt', 'oversized blazer'. Use whenever the user asks what to wear somewhere, "
                 "before judging their wardrobe."
@@ -222,18 +223,21 @@ TOOLS = [
         "function": {
             "name": "check_outfit_completeness",
             "description": (
-                "Check whether the pieces the user says they own make a complete outfit (dress + shoes, or top + "
-                "bottom + shoes, plus at least 3 accessories). Returns status 'complete' or 'search_closet' with the missing roles and what to "
-                "look for in their closet. Call it once the user has listed what they own for an event."
+                "Check whether the pieces the user owns make a complete outfit (dress + shoes, or top + bottom + "
+                "shoes, plus at least 3 accessories; layers are optional). Returns 'complete', 'search_closet' "
+                "with the missing roles and what to look for in their closet, or 'needs_clarification' when a "
+                "piece's role is unclear. Call it every time the user asks about an event or adds pieces."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "items": {
                         "type": "array",
-                        "description": "The user's WHOLE list of garments they mentioned owning, none left out. Do not "
-                                       "pick an outfit yourself; this tool decides whether the pieces make one. Do "
-                                       "not add items they did not mention.",
+                        "description": "The pieces the user owns that could plausibly be worn to this event, drawn from "
+                                       "everything they have mentioned owning so far in the conversation (accessories "
+                                       "like belts, watches and jewelry carry across events). Leave out pieces that "
+                                       "clearly don't suit the event. Don't pick a single outfit yourself; this tool "
+                                       "decides whether the pieces make one. Never add items they did not mention.",
                         "items": {
                             "type": "object",
                             "properties": {
