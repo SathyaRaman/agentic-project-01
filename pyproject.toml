@@ -1,7 +1,7 @@
 [project]
-name = "gemini-web-tool-calling"
+name = "trend-desk"
 version = "0.1.0"
-description = "qwen-tool-calling behind a web server: FastAPI + LiteLLM + Gemini, with tool calls shown in the UI"
+description = "Trend Desk: a fashion trend analyst agent (FastAPI + LiteLLM + Gemini) with Wikipedia, eBay and V&A tools"
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.109.0",

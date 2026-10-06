@@ -3,190 +3,536 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Gemini Web Tool Calling</title>
+        <title>Trend Desk</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap"
+            rel="stylesheet"
+        />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
         <style>
+            :root {
+                --paper: #f7f3ec;
+                --card: #fffdf9;
+                --ink: #1a1714;
+                --muted: #7a7168;
+                --line: #e4dccf;
+                --accent: #b8325a;
+                --accent-soft: #f6e3e9;
+                --good: #2f7a4f;
+                --warn: #b7791f;
+                --bad: #a83232;
+                --serif: "Playfair Display", Georgia, serif;
+                --sans: "Inter", system-ui, sans-serif;
+                --mono: "JetBrains Mono", ui-monospace, monospace;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --paper: #15130f;
+                    --card: #1e1b17;
+                    --ink: #f1ebe2;
+                    --muted: #a39a8f;
+                    --line: #35302a;
+                    --accent: #e4799a;
+                    --accent-soft: #3a2029;
+                    --good: #6cc191;
+                    --warn: #e0ad5a;
+                    --bad: #e38181;
+                }
+            }
             * {
                 box-sizing: border-box;
                 margin: 0;
                 padding: 0;
             }
             body {
-                font-family: system-ui, sans-serif;
-                height: 100vh;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                padding: 3rem 1rem;
-            }
-            #container {
-                width: 100%;
-                max-width: 900px;
-                display: flex;
-                flex-direction: column;
-                border: 1px solid #e0e0e0;
-            }
-            #messages {
-                overflow-y: auto;
-                padding: 2rem;
-                display: flex;
-                flex-direction: column;
-                gap: 1.5rem;
-                min-height: 450px;
-                max-height: 70vh;
-            }
-            .msg {
+                background: var(--paper);
+                color: var(--ink);
+                font-family: var(--sans);
                 line-height: 1.5;
-                max-width: 80%;
             }
-            .msg.user {
+            .wrap {
+                max-width: 920px;
+                margin: 0 auto;
+                padding: 0 16px;
+            }
+
+            /* Masthead */
+            header {
+                border-bottom: 2px solid var(--ink);
+                padding: 2rem 0 1rem;
+                text-align: center;
+            }
+            .kicker {
+                font-size: 0.7rem;
+                letter-spacing: 0.25em;
+                text-transform: uppercase;
+                color: var(--muted);
+            }
+            h1 {
+                font-family: var(--serif);
+                font-weight: 800;
+                font-size: clamp(2.6rem, 9vw, 4.5rem);
+                letter-spacing: -0.02em;
+                line-height: 1;
+                margin: 0.4rem 0;
+            }
+            h1 em {
+                color: var(--accent);
+            }
+            .dek {
+                font-family: var(--serif);
+                font-style: italic;
+                font-size: 1.15rem;
+                color: var(--muted);
+            }
+
+            /* How it works */
+            .signals {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                border-bottom: 1px solid var(--line);
+            }
+            .signal {
+                padding: 1rem;
+                border-right: 1px solid var(--line);
+            }
+            .signal:last-child {
+                border-right: none;
+            }
+            .signal b {
+                display: block;
+                font-family: var(--serif);
+                font-size: 1.05rem;
+            }
+            .signal span {
+                font-size: 0.8rem;
+                color: var(--muted);
+            }
+            @media (max-width: 640px) {
+                .signals {
+                    grid-template-columns: 1fr;
+                }
+                .signal {
+                    border-right: none;
+                    border-bottom: 1px solid var(--line);
+                }
+            }
+
+            /* Chat */
+            #messages {
+                display: flex;
+                flex-direction: column;
+                gap: 1.25rem;
+                padding: 1.5rem 0 9rem;
+                min-height: 40vh;
+            }
+            .empty {
+                text-align: center;
+                padding: 1.5rem 0;
+            }
+            .empty p {
+                color: var(--muted);
+                margin-bottom: 1rem;
+            }
+            .chips {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                justify-content: center;
+            }
+            .chip {
+                border: 1px solid var(--ink);
+                background: transparent;
+                color: var(--ink);
+                border-radius: 999px;
+                padding: 0.5rem 0.9rem;
+                font: inherit;
+                font-size: 0.85rem;
+                cursor: pointer;
+            }
+            .chip:hover {
+                background: var(--ink);
+                color: var(--paper);
+            }
+            .user {
                 align-self: flex-end;
-                text-align: right;
+                max-width: 80%;
+                background: var(--ink);
+                color: var(--paper);
+                padding: 0.6rem 1rem;
+                border-radius: 1rem 1rem 0.25rem 1rem;
             }
-            .msg .role {
+            .answer {
+                background: var(--card);
+                border: 1px solid var(--line);
+                border-left: 4px solid var(--accent);
+                padding: 1rem 1.25rem;
+            }
+            .answer p + p,
+            .answer ul + p,
+            .answer p + ul {
+                margin-top: 0.6rem;
+            }
+            .answer ul {
+                padding-left: 1.2rem;
+            }
+            .answer > p:first-child > strong:first-child {
+                font-family: var(--serif);
+                font-size: 1.3rem;
+                color: var(--accent);
+            }
+            .loading {
+                color: var(--muted);
+                font-family: var(--serif);
+                font-style: italic;
+            }
+
+            /* Tool cards */
+            .tools {
+                display: grid;
+                gap: 0.75rem;
+            }
+            .card {
+                background: var(--card);
+                border: 1px solid var(--line);
+                padding: 1rem;
+                min-width: 0;
+            }
+            .card-head {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                gap: 0.5rem;
+                flex-wrap: wrap;
+                margin-bottom: 0.6rem;
+            }
+            .card-title {
+                font-size: 0.7rem;
+                letter-spacing: 0.15em;
+                text-transform: uppercase;
+                color: var(--muted);
+            }
+            .card-title b {
+                color: var(--ink);
+                letter-spacing: 0.05em;
+            }
+            .badge {
                 font-size: 0.75rem;
+                font-weight: 600;
+                padding: 0.15rem 0.6rem;
+                border-radius: 999px;
+                background: var(--accent-soft);
+                color: var(--accent);
                 text-transform: uppercase;
                 letter-spacing: 0.05em;
-                color: #999;
+            }
+            .stats {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+                gap: 0.5rem;
+                margin-bottom: 0.75rem;
+            }
+            .stat {
+                border-top: 1px solid var(--line);
+                padding-top: 0.35rem;
+            }
+            .stat .v {
+                font-family: var(--serif);
+                font-size: 1.35rem;
+                font-weight: 600;
+            }
+            .stat .k {
+                font-size: 0.7rem;
+                color: var(--muted);
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+            }
+            .chart-box {
+                position: relative;
+                height: 180px;
+            }
+            .strip {
+                display: flex;
+                gap: 0.6rem;
+                overflow-x: auto;
+                margin-top: 0.75rem;
+                padding-bottom: 0.25rem;
+            }
+            .strip a {
+                flex: 0 0 120px;
+                color: inherit;
+                text-decoration: none;
+                font-size: 0.72rem;
+            }
+            .strip img {
+                width: 120px;
+                height: 120px;
+                object-fit: cover;
+                background: var(--line);
+                display: block;
                 margin-bottom: 0.25rem;
             }
-            .msg.loading .content {
-                color: #999;
+            .strip .yr {
+                font-weight: 600;
+                color: var(--accent);
             }
-            #input-area {
+            .vibe {
+                font-family: var(--serif);
+                font-style: italic;
+                margin-bottom: 0.6rem;
+            }
+            .basics {
                 display: flex;
-                gap: 1rem;
-                padding: 1.5rem;
-                border-top: 1px solid #e0e0e0;
+                flex-wrap: wrap;
+                gap: 0.4rem;
+            }
+            .basic {
+                border: 1px solid var(--line);
+                border-radius: 999px;
+                padding: 0.2rem 0.7rem;
+                font-size: 0.85rem;
+            }
+            .basic b {
+                color: var(--accent);
+                font-size: 0.75rem;
+            }
+            .articles {
+                display: grid;
+                gap: 0.75rem;
+            }
+            .article {
+                border-top: 1px solid var(--line);
+                padding-top: 0.5rem;
+                font-size: 0.85rem;
+            }
+            .article .yr {
+                font-size: 0.7rem;
+                font-weight: 600;
+                color: var(--accent);
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+            }
+            .article a {
+                color: var(--ink);
+                font-weight: 600;
+            }
+            .article p {
+                color: var(--muted);
+                margin-top: 0.15rem;
+            }
+            .card.error {
+                color: var(--muted);
+                font-size: 0.85rem;
+            }
+            details.raw {
+                margin-top: 0.6rem;
+                font-size: 0.72rem;
+            }
+            details.raw summary {
+                cursor: pointer;
+                color: var(--muted);
+            }
+            details.raw pre {
+                font-family: var(--mono);
+                white-space: pre-wrap;
+                word-break: break-word;
+                max-height: 220px;
+                overflow: auto;
+                background: var(--paper);
+                padding: 0.5rem;
+                margin-top: 0.35rem;
+            }
+
+            /* Composer */
+            #composer {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(transparent, var(--paper) 30%);
+                padding: 1.5rem 0 1rem;
+            }
+            #composer .row {
+                display: flex;
+                gap: 0.5rem;
+                background: var(--card);
+                border: 1px solid var(--ink);
+                padding: 0.35rem;
             }
             #user-input {
                 flex: 1;
-                padding: 0.75rem 0;
+                min-width: 0;
                 border: none;
-                border-bottom: 1px solid #e0e0e0;
+                background: transparent;
+                color: var(--ink);
+                font: inherit;
                 font-size: 1rem;
+                padding: 0.5rem 0.6rem;
                 outline: none;
             }
-            #user-input:focus {
-                border-bottom-color: #000;
-            }
-            button {
-                padding: 0.75rem 1.5rem;
-                background: #000;
-                color: #fff;
+            .btn {
                 border: none;
+                background: var(--ink);
+                color: var(--paper);
+                font: inherit;
                 font-size: 0.75rem;
+                font-weight: 600;
+                letter-spacing: 0.1em;
                 text-transform: uppercase;
-                letter-spacing: 0.05em;
+                padding: 0 1.1rem;
                 cursor: pointer;
             }
-            .tool {
-                font-family: ui-monospace, monospace;
-                font-size: 0.75rem;
-                color: #555;
-                background: #f5f5f5;
-                border-left: 3px solid #f59e0b;
-                padding: 0.5rem 0.75rem;
-                margin: 0.25rem 0 0.75rem;
-                white-space: pre-wrap;
-                word-break: break-word;
+            .btn.ghost {
+                background: transparent;
+                color: var(--muted);
             }
-            .tool .label {
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-                color: #b45309;
-            }
-            button:disabled {
-                opacity: 0.3;
+            .btn:disabled {
+                opacity: 0.35;
             }
         </style>
     </head>
     <body>
-        <div id="container">
-            <div id="messages"></div>
-            <div id="input-area">
-                <input
-                    type="text"
-                    id="user-input"
-                    placeholder="Type a message..."
-                    autocomplete="off"
-                />
-                <button id="send-btn">Send</button>
+        <header class="wrap">
+            <div class="kicker">The data-driven shopping column</div>
+            <h1>Trend <em>Desk</em></h1>
+            <p class="dek">Buy it now, wait, buy it used, or let it die? Ask before you check out.</p>
+        </header>
+
+        <section class="wrap signals" aria-label="How it works">
+            <div class="signal">
+                <b>📈 Hype cycle</b>
+                <span>Is it alive? Ten years of Wikipedia attention, its peak, and how fast it is fading.</span>
+            </div>
+            <div class="signal">
+                <b>🏷️ Resale pulse</b>
+                <span>What is it worth? New vs pre-owned eBay market, and whether people are dumping it.</span>
+            </div>
+            <div class="signal">
+                <b>🏛️ Resurrection forecast</b>
+                <span>Will it come back? Two centuries of the V&amp;A museum archive, decade by decade.</span>
+            </div>
+        </section>
+
+        <main class="wrap">
+            <div id="messages">
+                <div class="empty" id="empty">
+                    <p>Ask about any trend, aesthetic or item you're about to buy.</p>
+                    <div class="chips">
+                        <button class="chip">Is now a good time to buy ballet flats, or should I wait?</button>
+                        <button class="chip">Is the coquette aesthetic over?</button>
+                        <button class="chip">When will platform shoes come back?</button>
+                        <button class="chip">Quiet luxury vs cargo pants: which is aging better?</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div id="composer">
+            <div class="wrap">
+                <div class="row">
+                    <input
+                        type="text"
+                        id="user-input"
+                        placeholder="e.g. Should I buy a corset top for $80?"
+                        autocomplete="off"
+                    />
+                    <button class="btn ghost" id="clear-btn" title="Start a new conversation">New</button>
+                    <button class="btn" id="send-btn">Ask</button>
+                </div>
             </div>
         </div>
+
         <script>
             const messages = document.getElementById("messages");
             const userInput = document.getElementById("user-input");
             const sendBtn = document.getElementById("send-btn");
             let sessionId = null;
 
-            function addMessage(role, text, isLoading = false) {
-                const div = document.createElement("div");
-                div.className =
-                    "msg " +
-                    (role === "you" ? "user" : "assistant") +
-                    (isLoading ? " loading" : "");
-                div.innerHTML =
-                    '<div class="role">' +
-                    role +
-                    '</div><div class="content">' +
-                    text +
-                    "</div>";
-                messages.appendChild(div);
-                messages.scrollTop = messages.scrollHeight;
-                return div;
+            const LOADING_LINES = [
+                "Pulling the receipts…",
+                "Checking who's still searching for it…",
+                "Rifling through the museum archive…",
+                "Pricing it on the resale market…",
+            ];
+
+            // --- tiny DOM helpers (tool data is untrusted text: never innerHTML it) ---
+            function el(tag, cls, text) {
+                const n = document.createElement(tag);
+                if (cls) n.className = cls;
+                if (text !== undefined) n.textContent = text;
+                return n;
+            }
+            // Every tool call gets the same card: its name, arguments and result as pretty-printed JSON.
+            // The only warning is for a result that isn't valid JSON.
+            function renderToolCall(call) {
+                const card = el("details", "card raw");
+                card.append(el("summary", null, "tool call: " + call.name + "(" + JSON.stringify(call.args) + ")"));
+                try {
+                    card.append(el("pre", null, JSON.stringify(JSON.parse(call.result), null, 2)));
+                } catch {
+                    card.classList.add("error");
+                    card.append(el("div", null, "⚠️ Tool returned invalid JSON:"), el("pre", null, call.result));
+                }
+                return card;
             }
 
-            async function send() {
-                const text = userInput.value.trim();
-                if (!text) return;
+            // --- chat ---
+            function scrollDown() {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+            }
 
+            async function send(text) {
+                text = (text ?? userInput.value).trim();
+                if (!text) return;
+                document.getElementById("empty")?.remove();
                 userInput.value = "";
                 sendBtn.disabled = true;
-                addMessage("you", text);
-                const loading = addMessage("assistant", "Thinking...", true);
+
+                messages.append(el("div", "user", text));
+                const loading = el("div", "loading", LOADING_LINES[0]);
+                messages.append(loading);
+                scrollDown();
+                let i = 0;
+                const ticker = setInterval(() => {
+                    loading.textContent = LOADING_LINES[++i % LOADING_LINES.length];
+                }, 1800);
 
                 try {
                     const res = await fetch("/chat", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            message: text,
-                            session_id: sessionId,
-                        }),
+                        body: JSON.stringify({ message: text, session_id: sessionId }),
                     });
                     const data = await res.json();
                     sessionId = data.session_id;
 
-                    // Show each tool the harness ran, above the assistant's answer
-                    for (const call of data.tool_calls || []) {
-                        const div = document.createElement("div");
-                        div.className = "tool";
-                        const label = document.createElement("span");
-                        label.className = "label";
-                        label.textContent = "tool call  ";
-                        div.appendChild(label);
-                        div.appendChild(
-                            document.createTextNode(
-                                call.name + "(" + JSON.stringify(call.args) + ")\n→ " + call.result,
-                            ),
-                        );
-                        messages.insertBefore(div, loading);
+                    if (data.tool_calls && data.tool_calls.length) {
+                        const tools = el("div", "tools");
+                        for (const call of data.tool_calls) tools.append(renderToolCall(call));
+                        messages.insertBefore(tools, loading);
                     }
-                    loading.querySelector(".content").textContent =
-                        data.response;
-                    loading.classList.remove("loading");
+                    const answer = el("div", "answer");
+                    answer.innerHTML = DOMPurify.sanitize(marked.parse(data.response || ""));
+                    loading.replaceWith(answer);
                 } catch (e) {
-                    loading.querySelector(".content").textContent =
-                        "Error: " + e.message;
-                    loading.classList.remove("loading");
+                    loading.replaceWith(el("div", "answer", "Error: " + e.message));
                 }
+                clearInterval(ticker);
                 sendBtn.disabled = false;
                 userInput.focus();
+                scrollDown();
             }
 
-            sendBtn.addEventListener("click", send);
-            userInput.addEventListener("keydown", function (e) {
+            sendBtn.addEventListener("click", () => send());
+            userInput.addEventListener("keydown", (e) => {
                 if (e.key === "Enter") send();
+            });
+            document.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => send(c.textContent)));
+            document.getElementById("clear-btn").addEventListener("click", async () => {
+                if (sessionId) await fetch("/clear?session_id=" + encodeURIComponent(sessionId), { method: "POST" });
+                location.reload();
             });
             userInput.focus();
         </script>

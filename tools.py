@@ -1,43 +1,107 @@
 """The tools the harness can run, and the JSON that describes them to the model."""
 
 import json
+import os
+from datetime import date, timedelta
+from urllib.parse import quote
 
 import requests
 
-# Open-Meteo is free and needs no API key.
-GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/search"
-FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+# Wikipedia is free and needs no key, but throttles requests without a User-Agent that includes a contact URL.
+WIKI_API_URL = "https://en.wikipedia.org/w/api.php"
+PAGEVIEWS_URL = (
+    "https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/"
+    "en.wikipedia/all-access/user/{title}/monthly/2015070100/{end}"
+)
+WIKI_HEADERS = {"User-Agent": "WardrobeAgent/0.1 (https://github.com/SathyaRaman/agentic-project-01)"}
 
 
-def get_weather(location: str) -> str:
-    """Get the current weather for a location."""
+def get_item_pageviews(item: str) -> str:
+    """Get monthly Wikipedia pageviews for a clothing item, as a measure of how popular it is over time."""
     try:
-        places = requests.get(GEOCODE_URL, params={"name": location, "count": 1}, timeout=10).json()
-        if not places.get("results"):
-            return json.dumps({"error": f"City '{location}' was not found."})
-        place = places["results"][0]
-
-        current = requests.get(
-            FORECAST_URL,
-            params={
-                "latitude": place["latitude"],
-                "longitude": place["longitude"],
-                "current": "temperature_2m,relative_humidity_2m,wind_speed_10m",
-                "temperature_unit": "fahrenheit",
-                "wind_speed_unit": "mph",
-            },
+        # Find the item's article. Following redirects turns "ballet flats" into "Ballet flat"
+        # and "loafers" into "Slip-on shoe".
+        page = next(iter(requests.get(
+            WIKI_API_URL,
+            params={"action": "query", "titles": item, "redirects": 1, "format": "json"},
+            headers=WIKI_HEADERS,
             timeout=10,
-        ).json()["current"]
-    except requests.RequestException as e:
+        ).json()["query"]["pages"].values()))
+        if "missing" in page:
+            return json.dumps({
+                "error": f"Wikipedia has no article for '{item}'.",
+                "next_step": "Retry with the plain garment name, dropping modifiers like color or material "
+                             "(e.g. 'ballet flats' for 'mesh ballet flats'), or say there's no data on it.",
+            })
+        title = page["title"]
+
+        # Monthly pageviews from July 2015 up to the last complete month.
+        end = (date.today().replace(day=1) - timedelta(days=1)).strftime("%Y%m%d00")
+        resp = requests.get(
+            PAGEVIEWS_URL.format(title=quote(title.replace(" ", "_"), safe=""), end=end),
+            headers=WIKI_HEADERS,
+            timeout=10,
+        )
+        resp.raise_for_status()
+        items = resp.json()["items"]
+    except (requests.RequestException, KeyError) as e:
         # The model cannot see an exception. Return something it can reason about.
-        return json.dumps({"error": f"Weather service failed: {e}"})
+        return json.dumps({"error": f"Wikipedia lookup failed: {e}",
+                           "next_step": "Answer without popularity data and say it couldn't be checked."})
 
     return json.dumps({
-        "location": place["name"],
-        "temp_f": current["temperature_2m"],
-        "humidity": current["relative_humidity_2m"],
-        "wind_mph": current["wind_speed_10m"],
+        "item": item,
+        "wikipedia_article": title,
+        "monthly_pageviews": {f"{i['timestamp'][:4]}-{i['timestamp'][4:6]}": i["views"] for i in items},
     })
+
+
+# SerpAPI needs a key (free tier: ~100 searches/month). Get one at https://serpapi.com/manage-api-key.
+# Set SERPAPI_KEY in the environment (locally and on Cloud Run); never commit a real key here.
+SERPAPI_URL = "https://serpapi.com/search.json"
+SERPAPI_KEY = os.environ.get("SERPAPI_KEY", "YOUR_SERPAPI_KEY_HERE")
+MAX_SNIPPETS = 10
+
+
+def get_event_outfit_map(event_type: str, venue: str = "") -> str:
+    """Search Google for magazine/article advice on what to wear to an event and return the snippets."""
+    if SERPAPI_KEY == "YOUR_SERPAPI_KEY_HERE":
+        return json.dumps({
+            "error": "Web search unavailable: SERPAPI_KEY is not configured on this server.",
+            "next_step": "Answer from general dress-code knowledge and tell the user you couldn't check sources.",
+        })
+
+    query = f"what to wear to {event_type} {venue} outfit ideas".replace("  ", " ")
+    try:
+        results = requests.get(
+            SERPAPI_URL,
+            params={"engine": "google", "q": query, "api_key": SERPAPI_KEY},
+            timeout=45,  # SerpAPI runs a live Google search; uncached queries can take 20s+
+        ).json()
+    except requests.RequestException as e:
+        # The model cannot see an exception. Return something it can reason about.
+        return json.dumps({"error": f"Web search failed: {e}",
+                           "next_step": "Answer from general dress-code knowledge and say sources weren't checked."})
+
+    if "error" in results:  # bad key, out of searches, or no results
+        return json.dumps({
+            "error": f"Web search failed: {results['error']}",
+            "next_step": "If there were no results, retry with a more common event_type and no venue. "
+                         "Otherwise answer from general dress-code knowledge and say sources weren't checked.",
+        })
+
+    snippets = [
+        {"source": r.get("source"), "snippet": r["snippet"]}
+        for r in results.get("organic_results", []) if r.get("snippet")
+    ][:MAX_SNIPPETS]
+    if not snippets:
+        return json.dumps({
+            "error": f"No articles found for '{query}'.",
+            "next_step": "Retry with a more common event_type (e.g. 'rooftop party', 'wedding guest', "
+                         "'gallery opening') and/or without the venue.",
+        })
+
+    return json.dumps({"query": query, "snippets": snippets})
 
 
 # What the model sees: the "set notes" in the screenplay.
@@ -45,21 +109,61 @@ TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "get_weather",
-            "description": "Get the current weather (temperature, humidity, wind) for a city.",
+            "name": "get_item_pageviews",
+            "description": (
+                "Get monthly English Wikipedia pageviews for a clothing item or fashion trend since 2015, as a "
+                "measure of how much attention it gets over time. Use it to judge whether something is a "
+                "microtrend (no history, then a sudden spike that fades) or a staple (steady interest for "
+                "years). Note: clothing articles overall lost a lot of readers in 2025-26, so compare an item's "
+                "shape over time rather than reading every recent drop as the item dying."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "location": {"type": "string", "description": "City name, e.g. 'New York'"},
+                    "item": {
+                        "type": "string",
+                        "description": "Plain garment or trend name, e.g. 'ballet flats', 'loafers', 'cargo pants', "
+                                       "'coquette aesthetic'. Drop colors and materials ('ballet flats', not 'mesh "
+                                       "ballet flats').",
+                    },
                 },
-                "required": ["location"],
+                "required": ["item"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_event_outfit_map",
+            "description": (
+                "Search Google for magazine and article advice on what to wear to an event (optionally at a "
+                "specific venue or neighborhood) and return the article snippets with their source. Read across "
+                "the snippets for the common basics people wear there, e.g. 'black tank top', 'black ballet "
+                "flats', 'slip skirt', 'oversized blazer'. Use whenever the user asks what to wear somewhere, "
+                "before judging their wardrobe."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "event_type": {
+                        "type": "string",
+                        "description": "Kind of event in plain words, e.g. 'rooftop party', 'engagement dinner', "
+                                       "'gallery opening', 'wedding guest', 'first date', 'tech job interview'.",
+                    },
+                    "venue": {
+                        "type": "string",
+                        "description": "Optional venue, neighborhood or city to localise the search, e.g. "
+                                       "'Carbone NYC', 'Williamsburg', 'Whitney Museum'. Leave empty if unknown.",
+                    },
+                },
+                "required": ["event_type"],
             },
         },
     },
 ]
 
 # What the harness runs: tool name -> Python function.
-TOOL_MAP = {"get_weather": get_weather}
+TOOL_MAP = {"get_item_pageviews": get_item_pageviews, "get_event_outfit_map": get_event_outfit_map}
 
 
 def run_tool(name: str, args: dict) -> str:
