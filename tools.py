@@ -115,7 +115,7 @@ CLOSET_HINTS = {
 MIN_ACCESSORIES = 3
 
 
-def check_outfit_completeness(items: list[dict]) -> str:
+def check_outfit_completeness(items: list[dict], event: str = "") -> str:
     """Check whether the pieces a user owns make a complete outfit, and list any missing roles."""
     try:
         found = {}
@@ -130,6 +130,7 @@ def check_outfit_completeness(items: list[dict]) -> str:
     if "unclear" in found:
         return json.dumps({
             "status": "needs_clarification",
+            "event": event,
             "unclear_pieces": found["unclear"],
             "next_step": "Ask the user what each unclear piece is or how they'd wear it (e.g. a 'jumper' could be a "
                          "sweater or a dress), then call this tool again with the full list and a clear role for each.",
@@ -144,6 +145,7 @@ def check_outfit_completeness(items: list[dict]) -> str:
     if missing:
         return json.dumps({
             "status": "search_closet",
+            "event": event,
             "have": found,
             "missing_roles": missing,
             "accessories_needed": accessories_needed,
@@ -153,6 +155,7 @@ def check_outfit_completeness(items: list[dict]) -> str:
         })
     return json.dumps({
         "status": "complete",
+        "event": event,
         "have": found,
         "next_step": "An outfit is possible from what they own. No purchase needed. Suggest a layer if none is listed.",
     })
@@ -248,6 +251,11 @@ TOOLS = [
                             },
                             "required": ["name", "role"],
                         },
+                    },
+                    "event": {
+                        "type": "string",
+                        "description": "The event these pieces are for, in plain words, e.g. 'pool party' or "
+                                       "'rooftop party'. Always pass it so the result is labeled for the right event.",
                     },
                 },
                 "required": ["items"],

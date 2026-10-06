@@ -536,18 +536,26 @@
             }
             .chips {
                 display: flex;
-                flex-wrap: wrap;
-                gap: 0.8rem;
+                flex-wrap: nowrap;
+                gap: 0.5rem;
                 margin-bottom: 1.3rem;
+                overflow-x: auto;
+                scrollbar-width: none;
+            }
+            .chips::-webkit-scrollbar {
+                display: none;
             }
             .chip {
                 background: var(--card);
                 border: 1px solid #301535;
                 color: var(--ink);
                 border-radius: 999px;
-                padding: 0.72rem 1.45rem;
+                padding: 0.7rem 1rem;
                 font: inherit;
-                font-size: 1.05rem;
+                font-size: 1rem;
+                white-space: nowrap;
+                text-align: center;
+                flex: 1 0 auto; /* grow to fill the row so it lines up with the input and send button */
                 cursor: pointer;
                 transition: border-color 0.15s, background 0.15s;
             }
@@ -659,6 +667,7 @@
 
                     <div class="stat-card">
                         <div class="label">Outfit progress</div>
+                        <p class="source" id="progress-event" style="display: none"></p>
                         <div class="big" id="progress-num">&ndash;</div>
                         <div class="sub" id="progress-sub">Tell me what you own to start</div>
                         <div class="bar"><i id="progress-bar"></i></div>
@@ -740,6 +749,10 @@
             let sessionId = null;
             let toolCallCount = 0;
             const trendChecks = new Map(); // item -> peak year, filled from get_item_pageviews results
+            let searchedEvent = ""; // last event the search tool looked up
+            const closetPieces = new Map(); // every piece sent to a closet check this session, so the closet only grows
+            const pieceKey = (role, name) =>
+                role + ":" + name.toLowerCase().replace(/^(a few|a|an|some|my)\s+/, "").replace(/s$/, "");
 
             // Sample queries: the label is the chip, the text is what gets sent.
             const SAMPLES = [
@@ -748,16 +761,20 @@
                     text: "I have a rooftop party in Williamsburg on Friday. I own dark pants, a few blazers, white sneakers and plain tees. What should I wear?",
                 },
                 {
-                    label: "Gallery opening: am I set?",
+                    label: "Gallery: am I set?",
                     text: "Gallery opening this weekend. I have a black slip skirt, a plain tee, ballet flats, a blazer, a belt, a watch and gold earrings. Do I need to buy anything?",
                 },
                 {
-                    label: "Wedding guest, only jeans",
+                    label: "Wedding, only jeans",
                     text: "I'm a wedding guest next month and I only own jeans, a hoodie and sneakers. What am I missing?",
                 },
                 {
-                    label: "Microtrend check: loafers",
+                    label: "Loafers: trend or staple?",
                     text: "Everyone says I need loafers for my job interview. Are loafers a trend or a staple?",
+                },
+                {
+                    label: "Buy an infinity scarf?",
+                    text: "Should I buy an infinity scarf?",
                 },
             ];
 
@@ -929,16 +946,33 @@
                 }
                 setList("checks-list", "checks-empty", [...trendChecks].map(([item, peak]) => [item, peak]));
 
+                for (const c of calls) if (c.name === "get_event_outfit_map" && c.args.event_type) searchedEvent = c.args.event_type;
+
                 const last = calls.filter((c) => c.name === "check_outfit_completeness").pop();
-                if (!last) return;
+                const evNote = document.getElementById("progress-event");
+                if (!last) {
+                    // the event changed but the closet wasn't re-checked: say the numbers are from the earlier check
+                    if (evNote.dataset.event && searchedEvent && searchedEvent !== evNote.dataset.event) {
+                        evNote.textContent = "From your " + evNote.dataset.event + " check. Not re-checked for " + searchedEvent + " yet.";
+                    }
+                    return;
+                }
                 try {
                     const data = JSON.parse(last.result);
                     const have = data.have;
                     if (!have) return; // needs_clarification: nothing new to show yet
+                    const checkedFor = data.event || searchedEvent;
+                    evNote.dataset.event = checkedFor;
+                    evNote.textContent = checkedFor ? "For: " + checkedFor : "";
+                    evNote.style.display = checkedFor ? "block" : "none";
 
-                    const rows = [];
-                    for (const [role, names] of Object.entries(have)) for (const n of names) rows.push([n, role, "role"]);
-                    setList("closet-list", "closet-empty", rows);
+                    for (const [role, names] of Object.entries(have)) {
+                        for (const n of names) {
+                            const key = pieceKey(role, n);
+                            if (!closetPieces.has(key)) closetPieces.set(key, { name: n, role });
+                        }
+                    }
+                    setList("closet-list", "closet-empty", [...closetPieces.values()].map((p) => [p.name, p.role, "role"]));
 
                     // Progress = required slots filled, using the same rule as the tool.
                     const required = have.dress ? ["dress", "shoes"] : ["top", "bottom", "shoes"];
