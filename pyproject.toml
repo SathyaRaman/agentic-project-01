@@ -1,5 +1,5 @@
 [project]
-name = "trend-desk"
+name = "nope-agent"
 version = "0.1.0"
 description = "NOPE, the anti-shopping agent (FastAPI + LiteLLM + Gemini): event outfit search, a closet completeness check, and a Wikipedia microtrend checker"
 requires-python = ">=3.10"

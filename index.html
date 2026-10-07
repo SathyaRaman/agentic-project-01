@@ -992,6 +992,7 @@
             }
 
             async function send(text) {
+                if (sendBtn.disabled) return; // still waiting on the last reply (Enter would otherwise send again)
                 text = (text ?? userInput.value).trim();
                 if (!text) return;
                 userInput.value = "";

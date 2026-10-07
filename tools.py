@@ -7,20 +7,19 @@ from urllib.parse import quote
 
 import requests
 
-# Wikipedia is free and needs no key, but throttles requests without a User-Agent that includes a contact URL.
+# No key needed, but Wikipedia rate-limits requests that don't send a User-Agent with contact info.
 WIKI_API_URL = "https://en.wikipedia.org/w/api.php"
 PAGEVIEWS_URL = (
     "https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/"
     "en.wikipedia/all-access/user/{title}/monthly/2015070100/{end}"
 )
-WIKI_HEADERS = {"User-Agent": "WardrobeAgent/0.1 (https://github.com/SathyaRaman/agentic-project-01)"}
+WIKI_HEADERS = {"User-Agent": "NopeAgent/0.1 (https://github.com/SathyaRaman/agentic-project-01)"}
 
 
 def get_item_pageviews(item: str) -> str:
-    """Get monthly Wikipedia pageviews for a clothing item, as a measure of how popular it is over time."""
+    """Return monthly Wikipedia pageviews for a clothing item."""
     try:
-        # Find the item's article. Following redirects turns "ballet flats" into "Ballet flat"
-        # and "loafers" into "Slip-on shoe".
+        # Find the article. Redirects handle other names, e.g. "loafers" -> "Slip-on shoe".
         page = next(iter(requests.get(
             WIKI_API_URL,
             params={"action": "query", "titles": item, "redirects": 1, "format": "json"},
@@ -35,7 +34,7 @@ def get_item_pageviews(item: str) -> str:
             })
         title = page["title"]
 
-        # Monthly pageviews from July 2015 up to the last complete month.
+        # July 2015 through last month (this month isn't over yet).
         end = (date.today().replace(day=1) - timedelta(days=1)).strftime("%Y%m%d00")
         resp = requests.get(
             PAGEVIEWS_URL.format(title=quote(title.replace(" ", "_"), safe=""), end=end),
@@ -56,15 +55,15 @@ def get_item_pageviews(item: str) -> str:
     })
 
 
-# SerpAPI needs a key (free tier: ~100 searches/month). Get one at https://serpapi.com/manage-api-key.
-# Set SERPAPI_KEY in the environment (locally and on Cloud Run); never commit a real key here.
+# SerpAPI needs a key (free tier is ~100 searches a month): https://serpapi.com/manage-api-key
+# Set SERPAPI_KEY as an environment variable. Don't commit the real key.
 SERPAPI_URL = "https://serpapi.com/search.json"
 SERPAPI_KEY = os.environ.get("SERPAPI_KEY", "YOUR_SERPAPI_KEY_HERE")
 MAX_SNIPPETS = 10
 
 
 def get_event_outfit_map(event_type: str, venue: str = "") -> str:
-    """Search Google for what to wear to an event and return the top organic results' snippets."""
+    """Search Google for what to wear to an event and return the result snippets."""
     if SERPAPI_KEY == "YOUR_SERPAPI_KEY_HERE":
         return json.dumps({
             "error": "Web search unavailable: SERPAPI_KEY is not configured on this server.",
@@ -76,15 +75,14 @@ def get_event_outfit_map(event_type: str, venue: str = "") -> str:
         results = requests.get(
             SERPAPI_URL,
             params={"engine": "google", "q": query, "api_key": SERPAPI_KEY},
-            timeout=45,  # SerpAPI runs a live Google search; uncached queries can take 20s+
+            timeout=45,  # new searches can take 20+ seconds
         ).json()
     except requests.RequestException:
-        # The model cannot see an exception. Return something it can reason about.
-        # Don't echo the exception: requests puts the full URL, including api_key, in its message.
+        # Don't include the exception text: it contains the request URL, which has the API key.
         return json.dumps({"error": "Web search is temporarily unavailable.",
                            "next_step": "Answer from general dress-code knowledge and say sources weren't checked."})
 
-    if "error" in results:  # bad key, out of searches, or no results
+    if "error" in results:  # bad key, no searches left, or no results
         return json.dumps({
             "error": f"Web search failed: {results['error']}",
             "next_step": "If there were no results, retry with a more common event_type and no venue. "
@@ -105,7 +103,7 @@ def get_event_outfit_map(event_type: str, venue: str = "") -> str:
     return json.dumps({"query": query, "snippets": snippets})
 
 
-# What to look for in the closet when a role is missing.
+# Ideas for what to look for in the closet when something's missing.
 CLOSET_HINTS = {
     "top": "a tee, tank, button-up or knit",
     "bottom": "trousers, jeans or a skirt",
@@ -116,7 +114,7 @@ MIN_ACCESSORIES = 3
 
 
 def check_outfit_completeness(items: list[dict], event: str = "") -> str:
-    """Check whether the pieces a user owns make a complete outfit, and list any missing roles."""
+    """Check if the user's pieces make a full outfit and list what's missing."""
     try:
         found = {}
         for item in items:

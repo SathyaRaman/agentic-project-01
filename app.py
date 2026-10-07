@@ -98,7 +98,8 @@ def run_agent(messages: list[dict]) -> tuple[str, list[dict]]:
         messages += [reply.model_dump()]
 
         if not reply.tool_calls:
-            return reply.content, tool_calls
+            # Gemini occasionally returns no text after a tool call; don't let None crash the response.
+            return reply.content or "Sorry, I lost my train of thought. Could you ask that again?", tool_calls
 
         # The harness, not the model, runs each tool and appends the result
         for call in reply.tool_calls:
