@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from urllib.parse import quote
 
 import requests
+from cachetools import TTLCache, cached
 
 # No key needed, but Wikipedia rate-limits requests that don't send a User-Agent with contact info.
 WIKI_API_URL = "https://en.wikipedia.org/w/api.php"
@@ -16,6 +17,13 @@ PAGEVIEWS_URL = (
 WIKI_HEADERS = {"User-Agent": "NopeAgent/0.1 (https://github.com/SathyaRaman/agentic-project-01)"}
 
 
+# Cache the network tools: the same question often comes up twice in a session, and SerpAPI
+# only allows ~100 searches a month. Pageviews only change monthly, so an hour is plenty.
+search_cache = TTLCache(maxsize=64, ttl=3600)
+pageviews_cache = TTLCache(maxsize=64, ttl=3600)
+
+
+@cached(pageviews_cache)
 def get_item_pageviews(item: str) -> str:
     """Return monthly Wikipedia pageviews for a clothing item."""
     try:
@@ -43,10 +51,14 @@ def get_item_pageviews(item: str) -> str:
         )
         resp.raise_for_status()
         items = resp.json()["items"]
-    except (requests.RequestException, KeyError) as e:
-        # The model cannot see an exception. Return something it can reason about.
-        return json.dumps({"error": f"Wikipedia lookup failed: {e}",
+    except requests.RequestException:
+        return json.dumps({"error": "Wikipedia is temporarily unavailable.",
                            "next_step": "Answer without popularity data and say it couldn't be checked."})
+    except (KeyError, StopIteration):
+        # Wikipedia answered, but not in the shape we expect - usually an odd or empty item name.
+        return json.dumps({"error": f"Wikipedia returned no pageview data for '{item}'.",
+                           "next_step": "Retry with a plain garment name (e.g. 'loafers'), or answer without "
+                                        "popularity data and say it couldn't be checked."})
 
     return json.dumps({
         "item": item,
@@ -62,6 +74,7 @@ SERPAPI_KEY = os.environ.get("SERPAPI_KEY", "YOUR_SERPAPI_KEY_HERE")
 MAX_SNIPPETS = 10
 
 
+@cached(search_cache)
 def get_event_outfit_map(event_type: str, venue: str = "") -> str:
     """Search Google for what to wear to an event and return the result snippets."""
     if SERPAPI_KEY == "YOUR_SERPAPI_KEY_HERE":
@@ -111,18 +124,37 @@ CLOSET_HINTS = {
     "accessory": "jewelry, a bag, a belt, a scarf, sunglasses or a watch",
 }
 MIN_ACCESSORIES = 3
+# How dressy a piece (or an event) is. A piece below the event's dress code doesn't count
+# toward the outfit: jeans and a hoodie don't make a wedding look, however many slots they fill.
+FORMALITY = {"casual": 0, "smart": 1, "formal": 2}
 
 
-def check_outfit_completeness(items: list[dict], event: str = "") -> str:
+def check_outfit_completeness(items: list[dict], event: str = "", dress_code: str = "casual") -> str:
     """Check if the user's pieces make a full outfit and list what's missing."""
+    # Only formal events filter, and they only set aside 'casual' pieces: jeans and a hoodie don't
+    # make a wedding look, while a tie or a watch is 'smart' and perfectly fine there. Smart events
+    # like a rooftop party or a gallery opening are happy with a plain tee and sneakers.
+    bar = 1 if dress_code == "formal" else 0
     try:
-        found = {}
+        found, too_casual = {}, []
         for item in items:
+            if FORMALITY.get(item.get("formality", "smart"), 1) < bar:
+                too_casual.append(item["name"])
+                continue
             found.setdefault(item["role"], []).append(item["name"])
-    except (TypeError, KeyError):
+    except (TypeError, KeyError, AttributeError):
         return json.dumps({"error": "Each item needs a 'name' and a 'role'.",
                            "next_step": "Retry with items like {'name': 'dark pants', 'role': 'bottom'}."})
     if not found:
+        if too_casual:
+            return json.dumps({
+                "status": "search_closet", "event": event, "have": {}, "too_casual": too_casual,
+                "missing_roles": ["top", "bottom", "shoes", "accessory"],
+                "accessories_needed": MIN_ACCESSORIES,
+                "closet_hints": {r: CLOSET_HINTS[r] for r in ("top", "bottom", "shoes", "accessory")},
+                "next_step": f"Nothing they listed is dressy enough for a {dress_code} event. Tell them which "
+                             "pieces won't work and ask what else is in their closet.",
+            })
         return json.dumps({"error": "items is empty.",
                            "next_step": "Ask the user which pieces they own for this event, then retry."})
     if "unclear" in found:
@@ -145,6 +177,7 @@ def check_outfit_completeness(items: list[dict], event: str = "") -> str:
             "status": "search_closet",
             "event": event,
             "have": found,
+            "too_casual": too_casual,
             "missing_roles": missing,
             "accessories_needed": accessories_needed,
             "closet_hints": {r: CLOSET_HINTS.get(r, "") for r in missing},
@@ -155,6 +188,7 @@ def check_outfit_completeness(items: list[dict], event: str = "") -> str:
         "status": "complete",
         "event": event,
         "have": found,
+        "too_casual": too_casual,
         "next_step": "An outfit is possible from what they own. No purchase needed. Suggest a layer if none is listed.",
     })
 
@@ -224,7 +258,8 @@ TOOLS = [
                 "Check whether the pieces the user owns make a complete outfit (dress + shoes, or top + bottom + "
                 "shoes, plus at least 3 accessories; layers are optional). Returns 'complete', 'search_closet' "
                 "with the missing roles and what to look for in their closet, or 'needs_clarification' when a "
-                "piece's role is unclear. Call it every time the user asks about an event or adds pieces."
+                "piece's role is unclear. At a formal event, casual pieces don't count toward the outfit and "
+                "come back in 'too_casual'. Call it every time the user asks about an event or adds pieces."
             ),
             "parameters": {
                 "type": "object",
@@ -250,14 +285,33 @@ TOOLS = [
                                                    "the piece could plausibly be two roles (e.g. 'jumper': sweater "
                                                    "or dress); the tool will then tell you to ask the user.",
                                 },
+                                "formality": {
+                                    "type": "string",
+                                    "enum": ["casual", "smart", "formal"],
+                                    "description": "How dressy the piece is: 'casual' (jeans, hoodie, sneakers, "
+                                                   "flip-flops, gym wear), 'smart' (blazer, loafers, slip skirt, "
+                                                   "midi dress) or 'formal' (suit, gown, tuxedo, heels). Judge the "
+                                                   "piece itself, not the event.",
+                                },
                             },
-                            "required": ["name", "role"],
+                            "required": ["name", "role", "formality"],
                         },
                     },
                     "event": {
                         "type": "string",
                         "description": "The event these pieces are for, in plain words, e.g. 'pool party' or "
-                                       "'rooftop party'. Always pass it so the result is labeled for the right event.",
+                                       "'rooftop party'. Pass it when the user has named an event. Leave it out if they "
+                                       "haven't - don't invent one.",
+                    },
+                    "dress_code": {
+                        "type": "string",
+                        "enum": ["casual", "smart", "formal"],
+                        "description": "How dressy the event is: 'casual' (brunch, beach, the gym, a pool party), "
+                                       "'smart' (rooftop party, gallery opening, dinner, a casual office) or "
+                                       "'formal' (wedding, funeral, black tie gala, christening, job interview). "
+                                       "At a formal event, pieces marked 'casual' won't count toward the outfit. Pass it "
+                                       "when you know how dressy the event is. Leave it out if no event has been "
+                                       "named - the tool then just checks the pieces make a full outfit.",
                     },
                 },
                 "required": ["items"],
@@ -277,8 +331,10 @@ TOOL_MAP = {
 def run_tool(name: str, args: dict) -> str:
     """Run one tool call. Models invent tool names and arguments; never let that crash the loop."""
     if name not in TOOL_MAP:
-        return json.dumps({"error": f"Unknown tool '{name}'. Available: {list(TOOL_MAP)}"})
+        return json.dumps({"error": f"Unknown tool '{name}'. Available: {list(TOOL_MAP)}",
+                           "next_step": "Call one of the available tools instead, or answer without one."})
     try:
         return TOOL_MAP[name](**args)
     except TypeError as e:
-        return json.dumps({"error": f"Bad arguments for {name}: {e}"})
+        return json.dumps({"error": f"Bad arguments for {name}: {e}",
+                           "next_step": f"Call {name} again with exactly the arguments its schema lists."})

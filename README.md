@@ -8,8 +8,9 @@ We have both been there: an event comes up, we decide we have nothing to wear, s
 
 1. **`get_event_outfit_map(event_type, venue)`**: searches Google (via SerpAPI) for what people wear to the
    event and returns article snippets. The agent picks out the basics that keep coming up.
-2. **`check_outfit_completeness(items, event)`**: checks whether your pieces make a full outfit (top, bottom
-   and shoes, or a dress and shoes, plus 3 accessories). Returns what's missing, or asks when a piece is unclear.
+2. **`check_outfit_completeness(items, event, dress_code)`**: checks whether your pieces make a full outfit
+   (top, bottom and shoes, or a dress and shoes, plus 3 accessories) and that they match the formality of the
+   event. Returns what's missing, or asks when a piece is unclear.
 3. **`get_item_pageviews(item)`**: monthly Wikipedia pageviews since 2015. The agent uses the shape of the
    curve to tell a microtrend (sudden spike, no history) from a staple (steady for years).
 
@@ -17,7 +18,7 @@ We have both been there: an event comes up, we decide we have nothing to wear, s
 
 1. I have a rooftop party in Williamsburg on Friday. I own dark pants, a few blazers, white sneakers and plain tees. What should I wear?
 2. Gallery opening this weekend. I have a black slip skirt, a plain tee, ballet flats, a blazer, a belt, a watch and gold earrings. Do I need to buy anything?
-3. Should I buy an infinity scarf?
+3. Should I buy jeggings?
 
 ## Run locally
 

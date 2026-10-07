@@ -476,6 +476,15 @@
                 border-color: var(--gold);
                 color: var(--gold);
             }
+            .pill.aside {
+                background: transparent;
+                color: var(--muted);
+                text-decoration: line-through;
+            }
+            .pill.aside b {
+                color: var(--muted);
+                text-decoration: none;
+            }
             .hint {
                 font-size: 0.86rem;
                 color: var(--muted);
@@ -671,7 +680,7 @@
                         <div class="big" id="progress-num">&ndash;</div>
                         <div class="sub" id="progress-sub">Tell me what you own to start</div>
                         <div class="bar"><i id="progress-bar"></i></div>
-                        <div class="bar-note"><span>Complete = top + bottom (or dress), shoes, 3 accessories. Layers are optional.</span></div>
+                        <div class="bar-note"><span>Complete = top + bottom (or dress), shoes, 3 accessories. Layers are optional, and casual pieces don't count at a formal event.</span></div>
                     </div>
 
                     <div class="group">
@@ -700,7 +709,7 @@
                         <div class="label">Under the hood</div>
                         <ul class="list tools-list">
                             <li><b>Event search</b><code>get_event_outfit_map</code>Top organic Google results across fashion, socials, articles and more, used to recommend the basics you might already own for your kind of event.</li>
-                            <li><b>Closet check</b><code>check_outfit_completeness</code>Checks the pieces you own for this event: a top and bottom (or a dress), shoes and 3 accessories. Lists what's missing and what to look for in your closet, and asks if a piece is unclear.</li>
+                            <li><b>Closet check</b><code>check_outfit_completeness</code>Checks the pieces you own for this event: a top and bottom (or a dress), shoes and 3 accessories. At a formal event, casual pieces don't count. Lists what's missing and what to look for in your closet, and asks if a piece is unclear.</li>
                             <li><b>Microtrend checker</b><code>get_item_pageviews</code>Wikipedia pageviews since 2015: lasting interest or a passing spike.</li>
                         </ul>
                     </div>
@@ -773,8 +782,8 @@
                     text: "Everyone says I need loafers for my job interview. Are loafers a trend or a staple?",
                 },
                 {
-                    label: "Buy an infinity scarf?",
-                    text: "Should I buy an infinity scarf?",
+                    label: "Should I buy jeggings?",
+                    text: "Should I buy jeggings?",
                 },
             ];
 
@@ -843,6 +852,11 @@
                 for (const role of data.missing_roles || []) {
                     const need = role === "accessory" && data.accessories_needed ? data.accessories_needed + " more " : "";
                     pills.append(el("span", "pill missing", "missing: " + need + role));
+                }
+                for (const name of data.too_casual || []) {
+                    const p = el("span", "pill aside");
+                    p.append(el("b", null, "too casual "), document.createTextNode(name));
+                    pills.append(p);
                 }
                 for (const name of data.unclear_pieces || []) pills.append(el("span", "pill missing", "unclear: " + name));
                 card.append(pills);
