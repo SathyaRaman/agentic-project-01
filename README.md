@@ -4,22 +4,21 @@
 
 We have both been there: an event comes up, we decide we have nothing to wear, so we buy something and wear it once. NOPE helps you build the outfit from what you already own. It only suggests buying if something is actually missing, and even then only a lasting staple, bought secondhand.
 
+How to use: tell NOPE the event you're dressing for, what you already own, or something you want to buy.
+
 ## Tools
 
 1. **`get_event_outfit_map(event_type, venue)`**: searches Google (via SerpAPI) for what people wear to the
    event and returns article snippets. The agent picks out the basics that keep coming up.
 2. **`check_outfit_completeness(items, event, dress_code)`**: checks whether your pieces make a full outfit
-   (top, bottom and shoes, or a dress and shoes, plus 3 accessories) and that they match the formality of the
-   event. Returns what's missing, or asks when a piece is unclear.
+   (top, bottom and shoes, or a dress and shoes, plus 3 accessories). Also, does a formality check on pieces if an event is being discussed. Returns what's missing, or asks when a piece is unclear.
 3. **`get_item_pageviews(item)`**: monthly Wikipedia pageviews since 2015. The agent uses the shape of the
    curve to tell a microtrend (sudden spike, no history) from a staple (steady for years).
 
 ## Sample queries
 
-How to use: tell NOPE the event you're dressing for, what you already own, or something you want to buy.
-
 1. I have a rooftop party in Williamsburg on Friday. I own dark pants, a few blazers, white sneakers and plain tees. What should I wear?
-2. Gallery opening this weekend. I have a black slip skirt, a plain tee, ballet flats, a blazer, a belt, a watch and gold earrings. Do I need to buy anything?
+2. I'm a wedding guest next month and I only own jeans, a hoodie and sneakers. What am I missing?
 3. Should I buy jeggings?
 
 ## Run locally
