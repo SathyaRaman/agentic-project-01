@@ -16,7 +16,7 @@ We have both been there: an event comes up, we decide we have nothing to wear, s
 ## Sample queries
 
 1. I have a rooftop party in Williamsburg on Friday. I own dark pants, a few blazers, white sneakers and plain tees. What should I wear?
-2. I'm a wedding guest next month and I only own jeans, a hoodie and sneakers. What am I missing?
+2. Gallery opening this weekend. I have a black slip skirt, a plain tee, ballet flats, a blazer, a belt, a watch and gold earrings. Do I need to buy anything?
 3. Should I buy an infinity scarf?
 
 ## Run locally
